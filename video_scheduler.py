@@ -82,7 +82,6 @@ class Solution:
 
 
 def generate_valid_solution(donnees):
-    
     assignment = np.zeros(donnees.n, dtype=int)  
     memory_used = np.zeros(donnees.p, dtype=float) 
     
