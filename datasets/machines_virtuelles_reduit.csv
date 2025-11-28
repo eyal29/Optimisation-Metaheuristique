@@ -1,4 +1,4 @@
 vm_id;type ;cpu_power_MIPS;lambda (s);beta (MB);gamma (MB);P_energy (Watts);distance (km);Dij (MBps);memory_capacity (MB);priority
-1;Fog;10000;0.01;0.002;0.0005;65;5;80;512;faible
-2;Fog;20000;0.02;0.003;0.0007;95;50;40;1024;moyen
-3;Cloud;8000;0.005;0.001;0.0004;40;150;10;2048;fort 
+0;Fog;10000;0.01;0.002;0.0005;65;5;80;512;faible
+1;Fog;20000;0.02;0.003;0.0007;95;50;40;1024;moyen
+2;Cloud;8000;0.005;0.001;0.0004;40;150;10;2048;fort 

@@ -56,7 +56,7 @@ def plot_fronts_3d(valid_solutions, fronts):
             xs.append(sol.makespan)
             ys.append(sol.cost)
             zs.append(sol.energy)
-            labels.append(f"S{idx}")
+            #labels.append(f"S{idx}")
         color = colors[i % len(colors)]
 
         # Points  gros et visibles
