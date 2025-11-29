@@ -34,13 +34,11 @@ def  generate_fronts(population):
                     break
             if not dominated:
                 current_front.append(s)
-
         fronts.append(current_front) # Ajouter ce front
 
         remaining = [s for s in remaining if s not in current_front]  # Retirer ces solutions de la liste restante
     return fronts
 
-#Affichage graphique 
 #Affichage graphique 
 def plot_fronts_3d(valid_solutions, fronts):
     fig = plt.figure(figsize=(10, 8))
@@ -104,15 +102,14 @@ def select_leaders(population):
     Retourne (alpha, beta, delta) en respectant :
     - d'abord le rang de front (F1 > F2 > F3)
     - à l'intérieur de F1 : on choisit les solutions les plus diversifiées
-      (crowding distance élevée).
+      (crowding distance élevée)
     """
 
     if not population:
         return None, None, None
 
-    # 1) Fronts Pareto sur la population courante
+    # Fronts Pareto sur la population courante
     fronts = generate_fronts(population)
-
     if len(fronts) == 0 or len(fronts[0]) == 0:
         return None, None, None
 

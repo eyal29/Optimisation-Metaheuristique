@@ -3,31 +3,13 @@ from utils import load_data
 from video_scheduler import Donnees, generate_valid_solution
 from leader_pareto import generate_fronts, select_leaders, plot_fronts_3d
 from gwo_utils import compute_a, gwo_update_population
-from metrics import (
-    extract_objectives,
-    init_hv_tracking,
-    update_hv_tracking,
-    load_balancing_index,
-    fog_utilization_ratio,
-    energy_efficiency,
-    average_latency,
-    diversity_spread,
-    pareto_size,
-    spacing_metric,
-    plot_hv_convergence,
-    plot_metrics_bar,
-    plot_pareto_2d,
-)
+from metrics import *
 from ParetoArchive import ParetoArchive
 
-
-
-MAX_ITER = 50 #10
+MAX_ITER = 50 #100
 
 if __name__ == "__main__":
-
-    archive = ParetoArchive(max_size=10)   # ou un autre nombre
-
+    archive = ParetoArchive(max_size=10) # ou un autre nombre
     # === NOUVEAU lyliane === suivi HV
     hv_history = None
     ref_point = None
@@ -36,15 +18,14 @@ if __name__ == "__main__":
                             "datasets/machines_virtuelles.csv")
     donnees = Donnees(videos, vms)
 
-    # Générer 10 solutions valides
-    valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]#10solutions au départ
-
+    # Générer des solutions valides
+    valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]#10 solutions au départ
     start_time = time.time()
 
     #  BOUCLE PRINCIPALE 
     for t in range(1, MAX_ITER + 1):
         print(f"\n===== ITERATION {t} =====")
-        a = compute_a(t, MAX_ITER)  # on est obligé d'avoir a 
+        a = compute_a(t, MAX_ITER) 
         print(f"a = {a:.4f}")
 
         # Évaluation + affichage de la population
@@ -57,7 +38,7 @@ if __name__ == "__main__":
             print(f"  Energie totale: {solution.energy}")
             print("----------")
 
-        #  Fronts de la pop actuelle 
+        # Fronts de la pop actuelle 
         fronts = generate_fronts(valid_solutions)
         print("\n===== FRONTS NON DOMINES (population actuelle) =====")
         for i, front in enumerate(fronts):
@@ -76,7 +57,7 @@ if __name__ == "__main__":
             print(f"  Makespan={sol.makespan:.4f}, "
                 f"Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
 
-        # === NOUVEAU lyliane : HV + diversité/spacing sur l'archive ===
+        # HV + diversité/spacing sur l'archive ===
         if len(archive_solutions) > 0:
             objs_arch = extract_objectives(archive_solutions)
             if hv_history is None:
@@ -91,7 +72,6 @@ if __name__ == "__main__":
                 f"Diversity={div:.4f}, Spacing={sp:.4f}, "
                 f"Pareto size={psize}")
 
-
         #  Leaders de la population actuelle 
         alpha, beta, delta = select_leaders(valid_solutions)
         print("\n===== LEADERS =====")
@@ -105,7 +85,7 @@ if __name__ == "__main__":
                       f"Cost={solution.cost:.4f}, "
                       f"Energy={solution.energy:.4f}")
 
-        # === NOUVEAU lyliane : métriques Fog/Cloud sur le leader alpha ===
+        #  métriques Fog/Cloud sur le leader alpha ===
         if alpha is not None:
             lbi = load_balancing_index(alpha, donnees)
             fur = fog_utilization_ratio(alpha, donnees)
