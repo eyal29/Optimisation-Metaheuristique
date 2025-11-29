@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+from gwo_utils import crowding_distance
 import mplcursors
 
 def dominates(a, b): # permet de savoir si a domine b 
@@ -32,7 +34,6 @@ def  generate_fronts(population):
                     break
             if not dominated:
                 current_front.append(s)
-
         fronts.append(current_front) # Ajouter ce front
 
         remaining = [s for s in remaining if s not in current_front]  # Retirer ces solutions de la liste restante
@@ -98,72 +99,56 @@ def plot_fronts_3d(valid_solutions, fronts):
 # les leaders
 def select_leaders(population):
     """
-    Retourne (alpha, beta, delta) avec :
-      - alpha : meilleure solution du front 1
-      - beta  : solution de F1 la plus éloignée de alpha (objectifs différents)
-      - delta : solution (dans toute la population) éloignée en makespan/cost et avec objectifs différents de alpha et beta
+    Retourne (alpha, beta, delta) en respectant :
+    - d'abord le rang de front (F1 > F2 > F3)
+    - à l'intérieur de F1 : on choisit les solutions les plus diversifiées
+      (crowding distance élevée)
     """
+
     if not population:
         return None, None, None
 
+    # Fronts Pareto sur la population courante
     fronts = generate_fronts(population)
-    front1 = fronts[0]
+    if len(fronts) == 0 or len(fronts[0]) == 0:
+        return None, None, None
+
+    F1 = fronts[0]   # front 1 = solutions non dominées
+
+    # --- Cas normal : on a au moins 3 solutions dans F1 ---
+    if len(F1) >= 3:
+        # Matrice des objectifs pour F1 : shape (N, 3)
+        front_objs = np.array([
+            [s.makespan, s.cost, s.energy]
+            for s in F1
+        ], dtype=float)
+
+        # Crowding distance sur le front 1
+        cd = crowding_distance(front_objs)
+
+        # Indices triés par crowding décroissante
+        sorted_idx = np.argsort(-cd)
+
+        alpha = F1[sorted_idx[0]]
+        beta  = F1[sorted_idx[1]]
+        delta = F1[sorted_idx[2]]
+        return alpha, beta, delta
+
+    # --- Cas rare : F1 contient moins de 3 solutions ---
+    # On revient à une logique de fallback proche de ton ancienne version :
     def score(s):
-        return s.makespan + s.cost + s.energy # qualité globale (plus petit = meilleur)
+        return s.makespan + s.cost + s.energy
 
-    def obj_key(s, ndigits=10):
-        # clé pour comparer les objectifs (on arrondit un peu pour éviter les micro-différences floats)
-        return (
-            round(s.makespan, ndigits),
-            round(s.cost, ndigits),
-            round(s.energy, ndigits),
-        )
+    leaders = []
+    for front in fronts:
+        sorted_front = sorted(front, key=score)
+        for s in sorted_front:
+            leaders.append(s)
+            if len(leaders) == 3:
+                return leaders[0], leaders[1], leaders[2]
 
-    def dist_3d(a, b):
-        # distance euclidienne dans l'espace (makespan, cost, energy)
-        return (
-            (a.makespan - b.makespan) ** 2
-            + (a.cost     - b.cost)   ** 2
-            + (a.energy   - b.energy) ** 2
-        ) ** 0.5
+    # Si vraiment on a moins de 3 solutions au total
+    while len(leaders) < 3:
+        leaders.append(None)
 
-    # --- 1) Alpha : meilleure solution du front 1 ---
-    alpha = min(front1, key=score)
-    key_alpha = obj_key(alpha)
-
-    # --- 2) Beta : solution de F1 la plus éloignée de alpha, avec objectifs différents ---
-    beta = None
-    key_beta = None
-
-    beta_candidates = [
-        s for s in front1
-        if obj_key(s) != key_alpha
-    ]
-
-    if beta_candidates:
-        beta = max(beta_candidates, key=lambda s: dist_3d(s, alpha))
-        key_beta = obj_key(beta)
-
-    # --- 3) Delta : solution éloignée en makespan/cost, objectifs différents de alpha et beta ---
-
-    delta = None
-    if beta is not None:
-        delta_candidates = [
-            s for s in population
-            if obj_key(s) != key_alpha and obj_key(s) != key_beta
-        ]
-    else:
-        # si on n'a pas pu trouver de beta distinct, on évite juste d'égaliser alpha
-        delta_candidates = [
-            s for s in population
-            if obj_key(s) != key_alpha
-        ]
-
-    if delta_candidates:
-        delta = max(
-            delta_candidates,
-            key=lambda s: abs(s.makespan - alpha.makespan)
-                        + abs(s.cost     - alpha.cost)
-        )
-
-    return alpha, beta, delta
+    return leaders[0], leaders[1], leaders[2]

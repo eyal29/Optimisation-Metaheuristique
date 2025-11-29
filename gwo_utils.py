@@ -59,11 +59,165 @@ def gwo_update_population(population, alpha, beta, delta, donnees, a):
 
             new_assignment[i] = vm_new
 
-        # Création nouvelle solution
+                # Création nouvelle solution
         new_assignment = new_assignment.astype(int)
+
+        # 🔧 Réparation mémoire : s'assurer qu'on ne dépasse pas les capacités des VMs
+        new_assignment = repair_assignment(new_assignment, donnees)
+
         new_sol = Solution(new_assignment, donnees)
         new_sol.evaluate()
 
         new_population.append(new_sol)
 
     return new_population
+
+
+# ------------------- Réparation mémoire après GWO -------------------
+
+def repair_assignment(assignment, donnees):
+    """
+    Répare une affectation qui pourrait violer les capacités mémoire des VMs.
+
+    - assignment : vecteur des VMs pour chaque vidéo (taille n)
+    - donnees    : objet Donnees (contient m_i, memory_capacity, U_ij, n, p)
+
+    Principe :
+      1) on calcule la mémoire utilisée par VM
+      2) pour chaque VM qui dépasse sa capacité :
+         - on déplace certaines vidéos vers des VMs qui ont encore de la place
+         - on choisit la VM cible qui donne le plus petit U_ij (temps le plus faible)
+    """
+    assignment = assignment.copy().astype(int)
+    n, p = donnees.n, donnees.p
+    m_i = donnees.m_i
+    capacity = donnees.memory_capacity
+    U_ij = donnees.U_ij
+
+    # 1. Calcul de la mémoire utilisée par VM
+    memory_used = np.zeros(p, dtype=float)
+    for i in range(n):
+        vm = assignment[i]
+        memory_used[vm] += m_i[i]
+
+    # 2. Pour chaque VM qui dépasse sa capacité → on tente de déplacer des vidéos
+    for vm in range(p):
+        # Tant que cette VM est surchargée
+        while memory_used[vm] > capacity[vm]:
+            # vidéos actuellement sur cette VM
+            videos_on_vm = [i for i in range(n) if assignment[i] == vm]
+            if not videos_on_vm:
+                break  # plus rien à déplacer
+
+            # On essaye de déplacer d'abord les vidéos les plus "lourdes" en mémoire
+            videos_on_vm.sort(key=lambda i: m_i[i], reverse=True)
+
+            moved = False
+            for i in videos_on_vm:
+                # chercher des VMs cibles possibles
+                candidates = [
+                    k for k in range(p)
+                    if k != vm and memory_used[k] + m_i[i] <= capacity[k]
+                ]
+                if not candidates:
+                    continue
+
+                # parmi les VMs possibles, on prend celle avec le plus petit temps U_ij
+                best_vm = min(candidates, key=lambda k: U_ij[i, k])
+
+                # déplacer la vidéo i de vm → best_vm
+                assignment[i] = best_vm
+                memory_used[vm]      -= m_i[i]
+                memory_used[best_vm] += m_i[i]
+                moved = True
+                break  # on re-vérifie la surcharge de la VM
+
+            if not moved:
+                # Impossible de corriger plus cette VM (pas de place ailleurs)
+                # On sort de la boucle pour éviter une boucle infinie
+                break
+
+    return assignment
+
+
+# -------------------Lyliane -------------------
+
+def crowding_distance(front_objs: np.ndarray) -> np.ndarray:
+    """
+    Compute crowding distance for a single Pareto front.
+    
+    Parameters
+    ----------
+    front_objs : np.ndarray
+        Objective values for solutions in one front, shape (N, M)
+    
+    Returns
+    -------
+    distances : np.ndarray of shape (N,)
+    """
+    N, M = front_objs.shape
+    distances = np.zeros(N, dtype=float)
+
+    if N == 1:
+        distances[0] = np.inf
+        return distances
+
+    if N == 2:
+        distances[:] = np.inf
+        return distances
+
+    for m in range(M):
+        sorted_idx = np.argsort(front_objs[:, m])
+        sorted_vals = front_objs[sorted_idx, m]
+
+        fmin = sorted_vals[0]
+        fmax = sorted_vals[-1]
+
+        if fmax - fmin == 0:
+            continue
+
+        distances[sorted_idx[0]] = np.inf
+        distances[sorted_idx[-1]] = np.inf
+
+        for i in range(1, N - 1):
+            distances[sorted_idx[i]] += (sorted_vals[i+1] - sorted_vals[i-1]) / (fmax - fmin)
+
+    return distances
+
+
+
+def assign_crowding_distance(population, pareto_fronts):
+    """
+    Calcule la crowding-distance pour toute la population,
+    en appliquant crowding_distance() front par front.
+
+    population : liste d'objets Solution
+    pareto_fronts : liste de listes d’indices (F1, F2, F3…)
+    """
+
+    N = len(population)
+    crowding = np.zeros(N)
+
+    # On extrait les objectifs dans une matrice (N, M)
+    objs = np.array([
+        [sol.makespan, sol.cost, sol.energy]
+        for sol in population
+    ])
+
+    for front in pareto_fronts:
+        if len(front) == 0:
+            continue
+
+        # extraire les valeurs objectives du front
+        front_objs = objs[front]
+
+        # calculer la distance pour ce front
+        cd = crowding_distance(front_objs)
+
+        # remettre les valeurs au bon endroit
+        for i, idx in enumerate(front):
+            crowding[idx] = cd[i]
+
+    return crowding
+
+
