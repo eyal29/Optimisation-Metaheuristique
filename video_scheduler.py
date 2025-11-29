@@ -12,6 +12,21 @@ class Donnees:
         self.w_i = videos["wi"].to_numpy(dtype=float)
         self.q_out = videos["Output file size (MB)"].to_numpy(dtype=float)
         
+        # ===============================
+        #  Nouveau lyliane : Détection Fog / Cloud
+        # ===============================
+        if "type" not in vms.columns:
+            raise ValueError(
+                "La colonne 'type' est absente dans machines_virtuelles.csv. "
+                "Elle est nécessaire pour calculer FUR."
+            )
+
+        # Nettoyage du format (au cas où)
+        type_col = vms["type"].astype(str).str.strip().str.lower()
+
+        # Bool : True si Fog, False sinon
+        self.is_fog_j = type_col.eq("fog").values
+
         # VMs
         self.p = len(vms)
         self.P_j = vms["cpu_power_MIPS"].to_numpy(dtype=float)
@@ -82,7 +97,6 @@ class Solution:
 
 
 def generate_valid_solution(donnees):
-    
     assignment = np.zeros(donnees.n, dtype=int)  
     memory_used = np.zeros(donnees.p, dtype=float) 
     
