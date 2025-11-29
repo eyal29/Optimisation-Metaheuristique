@@ -22,7 +22,7 @@ from ParetoArchive import ParetoArchive
 
 
 
-MAX_ITER = 3 #10
+MAX_ITER = 50 #10
 
 if __name__ == "__main__":
 
@@ -37,12 +37,12 @@ if __name__ == "__main__":
     donnees = Donnees(videos, vms)
 
     # Générer 10 solutions valides
-    valid_solutions = [generate_valid_solution(donnees) for _ in range(10)]#10solutions au départ
+    valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]#10solutions au départ
 
     start_time = time.time()
 
     #  BOUCLE PRINCIPALE 
-    for t in range(MAX_ITER):
+    for t in range(1, MAX_ITER + 1):
         print(f"\n===== ITERATION {t} =====")
         a = compute_a(t, MAX_ITER)  # on est obligé d'avoir a 
         print(f"a = {a:.4f}")

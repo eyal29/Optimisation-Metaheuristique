@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+from gwo_utils import crowding_distance
 
 
 def dominates(a, b): # permet de savoir si a domine b 
@@ -99,32 +101,60 @@ def plot_fronts_3d(valid_solutions, fronts):
     plt.show()
 
 # les leaders
+# les leaders
 def select_leaders(population):
     """
     Retourne (alpha, beta, delta) en respectant :
     - d'abord le rang de front (F1 > F2 > F3)
+    - à l'intérieur de F1 : on choisit les solutions les plus diversifiées
+      (crowding distance élevée).
     """
 
+    if not population:
+        return None, None, None
+
+    # 1) Fronts Pareto sur la population courante
     fronts = generate_fronts(population)
+
+    if len(fronts) == 0 or len(fronts[0]) == 0:
+        return None, None, None
+
+    F1 = fronts[0]   # front 1 = solutions non dominées
+
+    # --- Cas normal : on a au moins 3 solutions dans F1 ---
+    if len(F1) >= 3:
+        # Matrice des objectifs pour F1 : shape (N, 3)
+        front_objs = np.array([
+            [s.makespan, s.cost, s.energy]
+            for s in F1
+        ], dtype=float)
+
+        # Crowding distance sur le front 1
+        cd = crowding_distance(front_objs)
+
+        # Indices triés par crowding décroissante
+        sorted_idx = np.argsort(-cd)
+
+        alpha = F1[sorted_idx[0]]
+        beta  = F1[sorted_idx[1]]
+        delta = F1[sorted_idx[2]]
+        return alpha, beta, delta
+
+    # --- Cas rare : F1 contient moins de 3 solutions ---
+    # On revient à une logique de fallback proche de ton ancienne version :
     def score(s):
         return s.makespan + s.cost + s.energy
-    leaders = []
 
-    # on parcourt les fronts dans l'ordre : F1, F2 ... 
+    leaders = []
     for front in fronts:
-        sorted_front = sorted(front, key=score) # par qualité 
+        sorted_front = sorted(front, key=score)
         for s in sorted_front:
             leaders.append(s)
             if len(leaders) == 3:
-                alpha, beta, delta = leaders # arret si on a les trois 
-                return alpha, beta, delta
+                return leaders[0], leaders[1], leaders[2]
 
-    # Si on a moins de 3 solutions au total
+    # Si vraiment on a moins de 3 solutions au total
     while len(leaders) < 3:
         leaders.append(None)
 
-    alpha, beta, delta = leaders
-    return alpha, beta, delta
-
-
-
+    return leaders[0], leaders[1], leaders[2]
