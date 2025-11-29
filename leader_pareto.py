@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def dominates(a, b): # permet de savoir si a domine b 
     """Retourne True si a domine b (minimisation)."""
     return (
@@ -124,3 +125,6 @@ def select_leaders(population):
 
     alpha, beta, delta = leaders
     return alpha, beta, delta
+
+
+

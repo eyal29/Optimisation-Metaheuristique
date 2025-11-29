@@ -71,3 +71,86 @@ def gwo_update_population(population, alpha, beta, delta, donnees, a):
         new_population.append(new_sol)
 
     return new_population
+
+
+# -------------------Lyliane -------------------
+
+def crowding_distance(front_objs: np.ndarray) -> np.ndarray:
+    """
+    Compute crowding distance for a single Pareto front.
+    
+    Parameters
+    ----------
+    front_objs : np.ndarray
+        Objective values for solutions in one front, shape (N, M)
+    
+    Returns
+    -------
+    distances : np.ndarray of shape (N,)
+    """
+    N, M = front_objs.shape
+    distances = np.zeros(N, dtype=float)
+
+    if N == 1:
+        distances[0] = np.inf
+        return distances
+
+    if N == 2:
+        distances[:] = np.inf
+        return distances
+
+    for m in range(M):
+        sorted_idx = np.argsort(front_objs[:, m])
+        sorted_vals = front_objs[sorted_idx, m]
+
+        fmin = sorted_vals[0]
+        fmax = sorted_vals[-1]
+
+        if fmax - fmin == 0:
+            continue
+
+        distances[sorted_idx[0]] = np.inf
+        distances[sorted_idx[-1]] = np.inf
+
+        for i in range(1, N - 1):
+            distances[sorted_idx[i]] += (sorted_vals[i+1] - sorted_vals[i-1]) / (fmax - fmin)
+
+    return distances
+
+
+
+def assign_crowding_distance(population, pareto_fronts):
+    """
+    Calcule la crowding-distance pour toute la population,
+    en appliquant crowding_distance() front par front.
+
+    population : liste d'objets Solution
+    pareto_fronts : liste de listes d’indices (F1, F2, F3…)
+    """
+
+    N = len(population)
+    crowding = np.zeros(N)
+
+    # On extrait les objectifs dans une matrice (N, M)
+    objs = np.array([
+        [sol.makespan, sol.cost, sol.energy]
+        for sol in population
+    ])
+
+    for front in pareto_fronts:
+        if len(front) == 0:
+            continue
+
+        # extraire les valeurs objectives du front
+        front_objs = objs[front]
+
+        # calculer la distance pour ce front
+        cd = crowding_distance(front_objs)
+
+        # remettre les valeurs au bon endroit
+        for i, idx in enumerate(front):
+            crowding[idx] = cd[i]
+
+    return crowding
+
+
