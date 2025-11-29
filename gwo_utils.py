@@ -5,12 +5,8 @@ from video_scheduler import Solution
 A_MAX = 2.0
 A_MIN = 0.0
 
-def compute_a(iteration, max_iter, a_max=A_MAX, a_min=A_MIN):
-    """
-    Calcule le paramètre a pour l'itération donnée.
-    """
+def compute_a(iteration, max_iter, a_max=2.0, a_min=0.0):
     return a_max - (a_max - a_min) * (iteration / max_iter)
-
 
 def gwo_update_population(population, alpha, beta, delta, donnees, a):
     """Met à jour la population selon les leaders GWO."""

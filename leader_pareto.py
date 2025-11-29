@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import mplcursors
 
 def dominates(a, b): # permet de savoir si a domine b 
     """Retourne True si a domine b (minimisation)."""
@@ -41,41 +42,35 @@ def  generate_fronts(population):
 def plot_fronts_3d(valid_solutions, fronts):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
-    colors = ["red", "blue", "green", "orange", "purple"]   # Couleurs par front
+    colors = ["red", "blue", "green", "orange", "purple"]  # Couleurs par front
 
-    #reglage pour que ca soit plus facile a comprendre 
+    # réglages visuels
     ax.set_facecolor("white")
     ax.grid(True, linestyle='--', linewidth=0.3, alpha=0.5)
 
     for i, front in enumerate(fronts):
         xs, ys, zs = [], [], []
-        labels = []
+        tooltips = []   # texte à afficher au survol
 
-        for sol in front:
-            idx = valid_solutions.index(sol) + 1
-            xs.append(sol.makespan)
-            ys.append(sol.cost)
-            zs.append(sol.energy)
-            #labels.append(f"S{idx}")
+        for solution in front:
+            xs.append(solution.makespan)
+            ys.append(solution.cost)
+            zs.append(solution.energy)
+            tooltips.append(f"Affectation : {solution.assignment}") #texte quand on survoles le point 
+
         color = colors[i % len(colors)]
 
-        # Points  gros et visibles
-        ax.scatter(xs, ys, zs, label=f"Front {i+1}", s=80, color=color, edgecolor="black", alpha=0.85)
-        # Étiquette de chaque point
-        for x, y, z, lab in zip(xs, ys, zs, labels):
-            ax.text(
-                    x, y, z, lab,
-                    fontsize=12, fontweight="bold",
-                    color="black", ha="center", va="center",
-                    bbox=dict(
-                        boxstyle="round,pad=0.3",
-                        fc="white",             # fond bien visible
-                        ec="black",             # contour noir plus net
-                        lw=1.2,                 # contour plus épais
-                        alpha=0.95              # haute visibilité
-                    ))
-            
-        # Ligne du front 1
+        # On dessine les points
+        sc = ax.scatter( xs, ys, zs, label=f"Front {i+1}", s=80, color=color, edgecolor="black", alpha=0.85)
+        cursor = mplcursors.cursor(sc, hover=True) # Survol interactif 
+
+        @cursor.connect("add")
+        def on_add(sel, texts=tooltips):
+            idx_point = sel.index
+            sel.annotation.set_text(texts[idx_point])  # affiche "Affectation : [...]"
+            sel.annotation.get_bbox_patch().set(alpha=0.9)
+
+        # Ligne reliant les points du front 1
         if i == 0 and len(xs) > 1:
             sorted_points = sorted(zip(xs, ys, zs), key=lambda t: t[0])
             lx = [p[0] for p in sorted_points]
@@ -83,8 +78,10 @@ def plot_fronts_3d(valid_solutions, fronts):
             lz = [p[2] for p in sorted_points]
             ax.plot(
                 lx, ly, lz,
-                linestyle='-', linewidth=2.5,
-                color=color, alpha=0.8
+                linestyle='-',
+                linewidth=2.5,
+                color=color,
+                alpha=0.8
             )
 
     # Axes + titres
@@ -97,30 +94,76 @@ def plot_fronts_3d(valid_solutions, fronts):
     plt.tight_layout()
     plt.show()
 
+
 # les leaders
 def select_leaders(population):
     """
-    Retourne (alpha, beta, delta) en respectant :
-    - d'abord le rang de front (F1 > F2 > F3)
+    Retourne (alpha, beta, delta) avec :
+      - alpha : meilleure solution du front 1
+      - beta  : solution de F1 la plus éloignée de alpha (objectifs différents)
+      - delta : solution (dans toute la population) éloignée en makespan/cost et avec objectifs différents de alpha et beta
     """
+    if not population:
+        return None, None, None
 
     fronts = generate_fronts(population)
+    front1 = fronts[0]
     def score(s):
-        return s.makespan + s.cost + s.energy
-    leaders = []
+        return s.makespan + s.cost + s.energy # qualité globale (plus petit = meilleur)
 
-    # on parcourt les fronts dans l'ordre : F1, F2 ... 
-    for front in fronts:
-        sorted_front = sorted(front, key=score) # par qualité 
-        for s in sorted_front:
-            leaders.append(s)
-            if len(leaders) == 3:
-                alpha, beta, delta = leaders # arret si on a les trois 
-                return alpha, beta, delta
+    def obj_key(s, ndigits=10):
+        # clé pour comparer les objectifs (on arrondit un peu pour éviter les micro-différences floats)
+        return (
+            round(s.makespan, ndigits),
+            round(s.cost, ndigits),
+            round(s.energy, ndigits),
+        )
 
-    # Si on a moins de 3 solutions au total
-    while len(leaders) < 3:
-        leaders.append(None)
+    def dist_3d(a, b):
+        # distance euclidienne dans l'espace (makespan, cost, energy)
+        return (
+            (a.makespan - b.makespan) ** 2
+            + (a.cost     - b.cost)   ** 2
+            + (a.energy   - b.energy) ** 2
+        ) ** 0.5
 
-    alpha, beta, delta = leaders
+    # --- 1) Alpha : meilleure solution du front 1 ---
+    alpha = min(front1, key=score)
+    key_alpha = obj_key(alpha)
+
+    # --- 2) Beta : solution de F1 la plus éloignée de alpha, avec objectifs différents ---
+    beta = None
+    key_beta = None
+
+    beta_candidates = [
+        s for s in front1
+        if obj_key(s) != key_alpha
+    ]
+
+    if beta_candidates:
+        beta = max(beta_candidates, key=lambda s: dist_3d(s, alpha))
+        key_beta = obj_key(beta)
+
+    # --- 3) Delta : solution éloignée en makespan/cost, objectifs différents de alpha et beta ---
+
+    delta = None
+    if beta is not None:
+        delta_candidates = [
+            s for s in population
+            if obj_key(s) != key_alpha and obj_key(s) != key_beta
+        ]
+    else:
+        # si on n'a pas pu trouver de beta distinct, on évite juste d'égaliser alpha
+        delta_candidates = [
+            s for s in population
+            if obj_key(s) != key_alpha
+        ]
+
+    if delta_candidates:
+        delta = max(
+            delta_candidates,
+            key=lambda s: abs(s.makespan - alpha.makespan)
+                        + abs(s.cost     - alpha.cost)
+        )
+
     return alpha, beta, delta

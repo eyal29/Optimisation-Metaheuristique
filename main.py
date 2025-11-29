@@ -4,18 +4,17 @@ from video_scheduler import Donnees, generate_valid_solution
 from leader_pareto import generate_fronts, select_leaders, plot_fronts_3d
 from gwo_utils import compute_a, gwo_update_population
 
-MAX_ITER = 10
+MAX_ITER = 5
+
 
 if __name__ == "__main__":
-    videos, vms = load_data("datasets/videos.csv",
-                            "datasets/machines_virtuelles.csv")
+    videos, vms = load_data("datasets/videos_reduit.csv",
+                            "datasets/machines_virtuelles_reduit.csv")
     donnees = Donnees(videos, vms)
 
     # Générer 10 solutions valides (on changera par 100 plus tard)
     valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]
-
-    # Archive globale (front Pareto sur toutes les itérations)
-    archive = []
+    archive = []   # Archive globale 
     
     #  BOUCLE PRINCIPALE 
     for t in range(MAX_ITER):
@@ -71,7 +70,7 @@ if __name__ == "__main__":
             valid_solutions, alpha, beta, delta, donnees, a
         )
 
-    # Nettoyage de l’archive : suppression des doublons exacts
+    # Nettoyage de l’archive : suppression des doublons
     unique = {}
     for sol in archive:
         key = (sol.makespan, sol.cost, sol.energy)
@@ -80,11 +79,12 @@ if __name__ == "__main__":
 
     print("\n===== MEILLEURES SOLUTIONS (ARCHIVE FINALE SANS DOUBLONS) =====")
     for sol in archive_unique:
-        print(f"  Makespan={sol.makespan:.4f}, "
+        print(f" Affectation: {sol.assignment}"
+              f" Makespan={sol.makespan:.4f}, "
               f"Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
 
     # Front Pareto global basé sur l’archive
     archive_fronts = generate_fronts(archive_unique)
 
-    # Affichage graphique des meilleures solutions (archive globale)
+    # Affichage graphique  (archive globale)
     plot_fronts_3d(archive_unique, archive_fronts)
