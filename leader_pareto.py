@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from gwo_utils import crowding_distance
-
+import mplcursors
 
 def dominates(a, b): # permet de savoir si a domine b 
     """Retourne True si a domine b (minimisation)."""
@@ -41,44 +41,39 @@ def  generate_fronts(population):
     return fronts
 
 #Affichage graphique 
+#Affichage graphique 
 def plot_fronts_3d(valid_solutions, fronts):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
-    colors = ["red", "blue", "green", "orange", "purple"]   # Couleurs par front
+    colors = ["red", "blue", "green", "orange", "purple"]  # Couleurs par front
 
-    #reglage pour que ca soit plus facile a comprendre 
+    # réglages visuels
     ax.set_facecolor("white")
     ax.grid(True, linestyle='--', linewidth=0.3, alpha=0.5)
 
     for i, front in enumerate(fronts):
         xs, ys, zs = [], [], []
-        labels = []
+        tooltips = []   # texte à afficher au survol
 
-        for sol in front:
-            idx = valid_solutions.index(sol) + 1
-            xs.append(sol.makespan)
-            ys.append(sol.cost)
-            zs.append(sol.energy)
-            #labels.append(f"S{idx}")
+        for solution in front:
+            xs.append(solution.makespan)
+            ys.append(solution.cost)
+            zs.append(solution.energy)
+            tooltips.append(f"Affectation : {solution.assignment}") #texte quand on survoles le point 
+
         color = colors[i % len(colors)]
 
-        # Points  gros et visibles
-        ax.scatter(xs, ys, zs, label=f"Front {i+1}", s=80, color=color, edgecolor="black", alpha=0.85)
-        # Étiquette de chaque point
-        for x, y, z, lab in zip(xs, ys, zs, labels):
-            ax.text(
-                    x, y, z, lab,
-                    fontsize=12, fontweight="bold",
-                    color="black", ha="center", va="center",
-                    bbox=dict(
-                        boxstyle="round,pad=0.3",
-                        fc="white",             # fond bien visible
-                        ec="black",             # contour noir plus net
-                        lw=1.2,                 # contour plus épais
-                        alpha=0.95              # haute visibilité
-                    ))
-            
-        # Ligne du front 1
+        # On dessine les points
+        sc = ax.scatter( xs, ys, zs, label=f"Front {i+1}", s=80, color=color, edgecolor="black", alpha=0.85)
+        cursor = mplcursors.cursor(sc, hover=True) # Survol interactif 
+
+        @cursor.connect("add")
+        def on_add(sel, texts=tooltips):
+            idx_point = sel.index
+            sel.annotation.set_text(texts[idx_point])  # affiche "Affectation : [...]"
+            sel.annotation.get_bbox_patch().set(alpha=0.9)
+
+        # Ligne reliant les points du front 1
         if i == 0 and len(xs) > 1:
             sorted_points = sorted(zip(xs, ys, zs), key=lambda t: t[0])
             lx = [p[0] for p in sorted_points]
@@ -86,8 +81,10 @@ def plot_fronts_3d(valid_solutions, fronts):
             lz = [p[2] for p in sorted_points]
             ax.plot(
                 lx, ly, lz,
-                linestyle='-', linewidth=2.5,
-                color=color, alpha=0.8
+                linestyle='-',
+                linewidth=2.5,
+                color=color,
+                alpha=0.8
             )
 
     # Axes + titres
@@ -100,7 +97,7 @@ def plot_fronts_3d(valid_solutions, fronts):
     plt.tight_layout()
     plt.show()
 
-# les leaders
+
 # les leaders
 def select_leaders(population):
     """
