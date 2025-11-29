@@ -18,12 +18,15 @@ from metrics import (
     plot_metrics_bar,
     plot_pareto_2d,
 )
+from ParetoArchive import ParetoArchive
 
-MAX_ITER = 3 #10
+
+
+MAX_ITER = 50 #10
 
 if __name__ == "__main__":
-    # Archive globale (front Pareto sur toutes les itérations)
-    archive = []
+
+    archive = ParetoArchive(max_size=10)   # ou un autre nombre
 
     # === NOUVEAU lyliane === suivi HV
     hv_history = None
@@ -33,15 +36,13 @@ if __name__ == "__main__":
                             "datasets/machines_virtuelles.csv")
     donnees = Donnees(videos, vms)
 
-    # Générer 10 solutions valides (on changera par 100 plus tard)
-    valid_solutions = [generate_valid_solution(donnees) for _ in range(10)]#100
+    # Générer 10 solutions valides
+    valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]#10solutions au départ
 
-    # Archive globale (front Pareto sur toutes les itérations)
-    archive = []
     start_time = time.time()
 
     #  BOUCLE PRINCIPALE 
-    for t in range(MAX_ITER):
+    for t in range(1, MAX_ITER + 1):
         print(f"\n===== ITERATION {t} =====")
         a = compute_a(t, MAX_ITER)  # on est obligé d'avoir a 
         print(f"a = {a:.4f}")
@@ -66,30 +67,30 @@ if __name__ == "__main__":
                 print(f"  Solution {idx} :  Makespan={solution.makespan:.4f}, "
                       f"Cost={solution.cost:.4f}, Energy={solution.energy:.4f}")
                 
-        # MAJ de l'archive : on fusionne l'ancienne archive et la population actuelle
-        all_solutions = archive + valid_solutions
-        new_fronts = generate_fronts(all_solutions)  # On recalcule les fronts sur "tout ce qu'on connaît"
-        archive = new_fronts[0]  # Le front 1 (non dominé) devient la nouvelle archive
+        for sol in valid_solutions:
+            archive.add(sol)
 
         print("\n===== ARCHIVE (FRONT GLOBAL NON DOMINE) =====")
-        for solution in archive:
-            print(f"  Makespan={solution.makespan:.4f}, "
-                  f"Cost={solution.cost:.4f}, Energy={solution.energy:.4f}")
+        archive_solutions = archive.get_solutions()
+        for sol in archive_solutions:
+            print(f"  Makespan={sol.makespan:.4f}, "
+                f"Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
 
         # === NOUVEAU lyliane : HV + diversité/spacing sur l'archive ===
-        if len(archive) > 0:
-            objs_arch = extract_objectives(archive)
+        if len(archive_solutions) > 0:
+            objs_arch = extract_objectives(archive_solutions)
             if hv_history is None:
-                hv_history, ref_point = init_hv_tracking(archive)
+                hv_history, ref_point = init_hv_tracking(archive_solutions)
             else:
-                hv_history = update_hv_tracking(archive, hv_history, ref_point)
+                hv_history = update_hv_tracking(archive_solutions, hv_history, ref_point)
 
             div = diversity_spread(objs_arch)
             sp = spacing_metric(objs_arch)
             psize = pareto_size(objs_arch)
             print(f"\n[Metrics ARCHIVE] HV={hv_history[-1]:.4f}, "
-                  f"Diversity={div:.4f}, Spacing={sp:.44f}, "
-                  f"Pareto size={psize}")
+                f"Diversity={div:.4f}, Spacing={sp:.4f}, "
+                f"Pareto size={psize}")
+
 
         #  Leaders de la population actuelle 
         alpha, beta, delta = select_leaders(valid_solutions)
@@ -119,11 +120,7 @@ if __name__ == "__main__":
         )
 
     # Nettoyage de l’archive : suppression des doublons exacts
-    unique = {}
-    for sol in archive:
-        key = (sol.makespan, sol.cost, sol.energy)
-        unique[key] = sol
-    archive_unique = list(unique.values())
+    archive_unique = archive.get_solutions()
 
     print("\n===== MEILLEURES SOLUTIONS (ARCHIVE FINALE SANS DOUBLONS) =====")
     for sol in archive_unique:

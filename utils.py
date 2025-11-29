@@ -9,4 +9,4 @@ def load_data(videos_path: str,vms_path: str,) -> Tuple[pd.DataFrame, pd.DataFra
     # print(df2.head(10)) 
     return df1, df2
 
-load_data('datasets/videos.csv', 'datasets/machines_virtuelles.csv')
+# load_data('datasets/videos.csv', 'datasets/machines_virtuelles.csv')

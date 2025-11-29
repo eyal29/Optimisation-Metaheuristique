@@ -1,8 +1,42 @@
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
-from leader_pareto import generate_fronts2
 from gwo_utils import assign_crowding_distance
+
+def generate_fronts2(population):
+    """
+    Version 'indices' de generate_fronts.
+    population : liste de solutions
+    Retourne une liste de fronts, où chaque front est une liste d'indices.
+    """
+    remaining = list(range(len(population)))
+    fronts = []
+
+    while remaining:
+        current_front = []
+        for i in remaining:
+            dominated = False
+            for j in remaining:
+                if i == j:
+                    continue
+                if (population[j].makespan <= population[i].makespan and
+                    population[j].cost     <= population[i].cost     and
+                    population[j].energy   <= population[i].energy   and
+                    (
+                        population[j].makespan < population[i].makespan or
+                        population[j].cost     < population[i].cost     or
+                        population[j].energy   < population[i].energy
+                    )):
+                    dominated = True
+                    break
+            if not dominated:
+                current_front.append(i)
+
+        fronts.append(current_front)
+        remaining = [i for i in remaining if i not in current_front]
+
+    return fronts
+
 
 class ParetoArchive:
     def __init__(self, max_size=None):
