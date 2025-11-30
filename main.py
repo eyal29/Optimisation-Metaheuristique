@@ -15,7 +15,7 @@ if __name__ == "__main__":
     ref_point = None
 
     videos, vms = load_data("datasets/videos.csv",
-                            "datasets/machines_virtuelles.csv")
+                            "datasets/machines_virtuelles_cloud_only.csv")
     donnees = Donnees(videos, vms)
 
     # Générer des solutions valides
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             "EE": energy_efficiency(best),
             "Avg Latency": average_latency(best, donnees),
         }
-        plot_metrics_bar(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)")
+        plot_metrics_subplots(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)")
 
         # 3) Pareto 2D Makespan vs Cost (couleur = Energy)
         objs_arch_final = extract_objectives(archive_unique)

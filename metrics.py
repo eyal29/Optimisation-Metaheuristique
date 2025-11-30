@@ -310,3 +310,53 @@ def plot_pareto_2d(objs, x_idx=0, y_idx=1,
 # print(f"Temps total d'exécution : {elapsed:.2f} s")
 # print(f"Nombre total d'évaluations : {nb_eval}")
 
+def plot_metrics_subplots(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)"):
+    """
+    Affiche les métriques Fog-Cloud sur 4 sous-graphiques avec :
+    - échelles indépendantes
+    - barres centrées
+    - valeurs numériques affichées
+    - tailles visuelles harmonisées
+    """
+    if not metrics_dict:
+        print("metrics_dict est vide, rien à tracer.")
+        return
+
+    names = list(metrics_dict.keys())
+    values = [metrics_dict[k] for k in names]
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+    axes = axes.flatten()
+
+    for i, (name, value) in enumerate(zip(names, values)):
+        ax = axes[i]
+
+        # Barre
+        ax.bar([0], [value], width=0.4)
+
+        # Titre du sous-graphe
+        ax.set_title(name, fontsize=12)
+
+        # Affichage de la valeur numérique au-dessus de la barre
+        ax.text(
+            0, value, f"{value:.4g}",
+            ha='center', va='bottom',
+            fontsize=10, fontweight='bold'
+        )
+
+        # Pas de ticks sur x
+        ax.set_xticks([])
+
+        # Ajout d'une grille légère
+        ax.grid(axis='y', linestyle='--', alpha=0.4)
+
+        # Marges pour éviter que la barre touche le haut
+        ax.set_ylim(0, value * 1.25 if value > 0 else 1)
+
+    # Masque les cases vides si < 4 métriques
+    for j in range(len(names), len(axes)):
+        axes[j].axis("off")
+
+    fig.suptitle(title, fontsize=15)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.show()
