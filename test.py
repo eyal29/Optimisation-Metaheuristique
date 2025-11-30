@@ -1,6 +1,6 @@
 import numpy as np
 from utils import load_data
-from video_scheduler import Donnees, generate_solutions, generate_valid_solution
+from solutions_definiton import Donnees, generate_solutions, generate_valid_solution
 
 # Création de l'instance des données
 videos, vms = load_data("datasets/videos_reduit.csv","datasets/machines_virtuelles_reduit.csv")
