@@ -1,6 +1,7 @@
 import numpy as np
 from utils import load_data
 import pandas as pd
+from typing import Tuple
 
 class Donnees:
     #pour recuperer les donnees des datasets et calculer la matrice Uij
@@ -12,9 +13,7 @@ class Donnees:
         self.w_i = videos["wi"].to_numpy(dtype=float)
         self.q_out = videos["Output file size (MB)"].to_numpy(dtype=float)
         
-        # ===============================
-        #  Nouveau lyliane : Détection Fog / Cloud
-        # ===============================
+
         if "type" not in vms.columns:
             raise ValueError(
                 "La colonne 'type' est absente dans machines_virtuelles.csv. "
@@ -95,21 +94,4 @@ class Solution:
 
         self.energy = total_energy
 
-
-def generate_valid_solution(donnees):
-    assignment = np.zeros(donnees.n, dtype=int)  
-    memory_used = np.zeros(donnees.p, dtype=float) 
-    
-    for i in range(donnees.n):
-        valid_assignment = False
-        while not valid_assignment:
-            vm = np.random.randint(0, donnees.p)  # Choisir une VM aléatoire
-            if memory_used[vm] + donnees.m_i[i] <= donnees.memory_capacity[vm]:
-                # Affecter la vidéo à cette VM
-                assignment[i] = vm
-                memory_used[vm] += donnees.m_i[i]  
-                valid_assignment = True  
-    
-    solution = Solution(assignment, donnees)  # Créer un objet Solution avec l'affectation
-    return solution
 

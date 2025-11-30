@@ -1,16 +1,14 @@
 import time
 from utils import load_data
-from video_scheduler import Donnees, generate_valid_solution
-from leader_pareto import generate_fronts, select_leaders, plot_fronts_3d
-from gwo_utils import compute_a, gwo_update_population
+from solutions_definiton import Donnees
+from pareto import generate_fronts, select_leaders, plot_fronts_3d, ParetoArchive
+from algo_utils import gwo_update_population, generate_valid_solution, compute_a
 from metrics import *
-from ParetoArchive import ParetoArchive
 
 MAX_ITER = 50 #100
 
 if __name__ == "__main__":
     archive = ParetoArchive(max_size=10) # ou un autre nombre
-    # === NOUVEAU lyliane === suivi HV
     hv_history = None
     ref_point = None
 
@@ -116,7 +114,6 @@ if __name__ == "__main__":
     # Affichage graphique des meilleures solutions (archive globale)
     plot_fronts_3d(archive_unique, archive_fronts)
 
-    # === NOUVEAU lyliane : plots de métriques ===
     # 1) Convergence HV
     if hv_history is not None:
         plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
