@@ -1,29 +1,39 @@
 import time
-from utils import load_data
+from utils import load_config, load_data
 from solutions_definiton import Donnees
 from pareto import generate_fronts, select_leaders, plot_fronts_3d, ParetoArchive
 from algo_utils import gwo_update_population, generate_valid_solution, compute_a
 from metrics import *
 
-MAX_ITER = 50 #100
-
 if __name__ == "__main__":
-    archive = ParetoArchive(max_size=10) # ou un autre nombre
+    config = load_config("config.yaml")
+
+    MAX_ITER = config["gwo"]["max_iter"]
+    POP_SIZE = config["gwo"]["population_size"]
+    ARCHIVE_MAX = config["gwo"]["max_archive_size"]
+    A_MAX = config["gwo"]["a_max"]
+    A_MIN = config["gwo"]["a_min"]
+
+    archive = ParetoArchive(max_size=ARCHIVE_MAX) # ou un autre nombre
     hv_history = None
     ref_point = None
 
-    videos, vms = load_data("datasets/videos.csv",
-                            "datasets/machines_virtuelles.csv")
+    videos_path = config["paths"]["videos"]
+    vms_path = config["paths"]["vms"]
+
+    videos, vms = load_data(videos_path, vms_path)
+
+    # on passera la vitesse de propagation au prochain point
     donnees = Donnees(videos, vms)
 
     # Générer des solutions valides
-    valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]#10 solutions au départ
+    valid_solutions = [generate_valid_solution(donnees) for _ in range(POP_SIZE)]#10 solutions au départ
     start_time = time.time()
 
     #  BOUCLE PRINCIPALE 
     for t in range(1, MAX_ITER + 1):
         print(f"\n===== ITERATION {t} =====")
-        a = compute_a(t, MAX_ITER) 
+        a = compute_a(t, MAX_ITER, a_max=A_MAX, a_min=A_MIN) 
         print(f"a = {a:.4f}")
 
         # Évaluation + affichage de la population
