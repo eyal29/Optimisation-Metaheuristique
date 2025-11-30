@@ -5,7 +5,7 @@ from pareto import generate_fronts, select_leaders, plot_fronts_3d, ParetoArchiv
 from algo_utils import gwo_update_population, generate_valid_solution, compute_a
 from metrics import *
 
-if __name__ == "__main__":
+def main():
     config = load_config("config.yaml")
 
     MAX_ITER = config["gwo"]["max_iter"]
@@ -148,3 +148,7 @@ if __name__ == "__main__":
             x_idx=0, y_idx=1,
             x_label="Makespan", y_label="Cost"
         )
+
+
+if __name__ == "__main__":
+    main()
