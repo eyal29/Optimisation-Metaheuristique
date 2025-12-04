@@ -139,7 +139,8 @@ def main():
             "EE": energy_efficiency(best),
             "Avg Latency": average_latency(best, donnees),
         }
-        plot_metrics_bar(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)")
+        plot_metrics_subplots(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)")
+
 
         # 3) Pareto 2D Makespan vs Cost (couleur = Energy)
         objs_arch_final = extract_objectives(archive_unique)
