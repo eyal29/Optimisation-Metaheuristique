@@ -1,12 +1,33 @@
 import numpy as np
-from video_scheduler import Solution
+from solutions_definiton import Solution
 
 # Paramètres GWO
 A_MAX = 2.0
 A_MIN = 0.0
-
-def compute_a(iteration, max_iter, a_max=2.0, a_min=0.0):
+def compute_a(iteration, max_iter, a_max=A_MAX, a_min=A_MIN):
+    """
+    Calcule le paramètre a pour l'itération donnée.
+    """
     return a_max - (a_max - a_min) * (iteration / max_iter)
+
+
+def generate_valid_solution(donnees):
+    assignment = np.zeros(donnees.n, dtype=int)  
+    memory_used = np.zeros(donnees.p, dtype=float) 
+    
+    for i in range(donnees.n):
+        valid_assignment = False
+        while not valid_assignment:
+            vm = np.random.randint(0, donnees.p)  # Choisir une VM aléatoire
+            if memory_used[vm] + donnees.m_i[i] <= donnees.memory_capacity[vm]:
+                # Affecter la vidéo à cette VM
+                assignment[i] = vm
+                memory_used[vm] += donnees.m_i[i]  
+                valid_assignment = True  
+    
+    solution = Solution(assignment, donnees)  # Créer un objet Solution avec l'affectation
+    return solution
+
 
 def gwo_update_population(population, alpha, beta, delta, donnees, a):
     """Met à jour la population selon les leaders GWO."""
@@ -139,8 +160,6 @@ def repair_assignment(assignment, donnees):
 
     return assignment
 
-
-# -------------------Lyliane -------------------
 
 def crowding_distance(front_objs: np.ndarray) -> np.ndarray:
     """

@@ -1,16 +1,21 @@
 import numpy as np
 from utils import load_data
-from video_scheduler import Donnees, Solution
+from solutions_definiton import Donnees, generate_solutions, generate_valid_solution
 
-# Création de l'instance du problème
-videos, vms = load_data("datasets/videos.csv","datasets/machines_virtuelles.csv")
+# Création de l'instance des données
+videos, vms = load_data("datasets/videos_reduit.csv","datasets/machines_virtuelles_reduit.csv")
 donnees = Donnees(videos, vms)
 
-# Création d'une solution avec une affectation aléatoire
-assignment = np.random.randint(0, donnees.p, size=donnees.n)  # Affectation aléatoire
-solution = Solution(assignment, donnees)
-solution.evaluate()
+for _ in range(10):
+    valid_solutions = generate_valid_solution(donnees)
 
-print("Makespan:", solution.makespan)
-print("Coût:", solution.cost)
-print("Énergie:", solution.energy)
+for idx, solution in enumerate(valid_solutions):
+    print(f"Solution {idx + 1}:")
+    print(f"  Affectation: {solution.assignment}")
+    print(f"  Makespan: {solution.makespan:.3f}")
+    print(f"  Cout: {solution.cost:.3f}")
+    print(f"  Energie: {solution.energy:.3f}")
+    print("----------")
+
+
+print(valid_solutions[0].makespan)

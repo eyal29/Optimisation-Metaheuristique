@@ -1,31 +1,39 @@
 import time
-from utils import load_data
-from video_scheduler import Donnees, generate_valid_solution
-from leader_pareto import generate_fronts, select_leaders, plot_fronts_3d
-from gwo_utils import compute_a, gwo_update_population
+from utils import load_config, load_data
+from solutions_definiton import Donnees
+from pareto import generate_fronts, select_leaders, plot_fronts_3d, ParetoArchive
+from algo_utils import gwo_update_population, generate_valid_solution, compute_a
 from metrics import *
-from ParetoArchive import ParetoArchive
 
-MAX_ITER = 50 #100
+def main():
+    config = load_config("config.yaml")
 
-if __name__ == "__main__":
-    archive = ParetoArchive(max_size=10) # ou un autre nombre
-    # === NOUVEAU lyliane === suivi HV
+    MAX_ITER = config["gwo"]["max_iter"]
+    POP_SIZE = config["gwo"]["population_size"]
+    ARCHIVE_MAX = config["gwo"]["max_archive_size"]
+    A_MAX = config["gwo"]["a_max"]
+    A_MIN = config["gwo"]["a_min"]
+
+    archive = ParetoArchive(max_size=ARCHIVE_MAX) # ou un autre nombre
     hv_history = None
     ref_point = None
 
-    videos, vms = load_data("datasets/videos.csv",
-                            "datasets/machines_virtuelles_cloud_only.csv")
+    videos_path = config["paths"]["videos"]
+    vms_path = config["paths"]["vms"]
+
+    videos, vms = load_data(videos_path, vms_path)
+
+    # on passera la vitesse de propagation au prochain point
     donnees = Donnees(videos, vms)
 
     # Générer des solutions valides
-    valid_solutions = [generate_valid_solution(donnees) for _ in range(100)]#10 solutions au départ
+    valid_solutions = [generate_valid_solution(donnees) for _ in range(POP_SIZE)]#10 solutions au départ
     start_time = time.time()
 
     #  BOUCLE PRINCIPALE 
     for t in range(1, MAX_ITER + 1):
         print(f"\n===== ITERATION {t} =====")
-        a = compute_a(t, MAX_ITER) 
+        a = compute_a(t, MAX_ITER, a_max=A_MAX, a_min=A_MIN) 
         print(f"a = {a:.4f}")
 
         # Évaluation + affichage de la population
@@ -116,7 +124,6 @@ if __name__ == "__main__":
     # Affichage graphique des meilleures solutions (archive globale)
     plot_fronts_3d(archive_unique, archive_fronts)
 
-    # === NOUVEAU lyliane : plots de métriques ===
     # 1) Convergence HV
     if hv_history is not None:
         plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
@@ -132,7 +139,7 @@ if __name__ == "__main__":
             "EE": energy_efficiency(best),
             "Avg Latency": average_latency(best, donnees),
         }
-        plot_metrics_subplots(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)")
+        plot_metrics_bar(metrics_dict, title="Métriques Fog-Cloud (meilleure solution archive)")
 
         # 3) Pareto 2D Makespan vs Cost (couleur = Energy)
         objs_arch_final = extract_objectives(archive_unique)
@@ -141,3 +148,7 @@ if __name__ == "__main__":
             x_idx=0, y_idx=1,
             x_label="Makespan", y_label="Cost"
         )
+
+
+if __name__ == "__main__":
+    main()

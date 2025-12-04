@@ -1,0 +1,27 @@
+# ============================
+# Configuration générale
+# ============================
+
+paths:
+  videos: "datasets/videos.csv"
+  vms: "datasets/machines_virtuelles.csv"
+
+# ============================
+# GWO Configuration
+# ============================
+
+gwo:
+  population_size: 100        # taille de la population
+  max_iter: 50                # nombre d’itérations
+  a_max: 2.0
+  a_min: 0.0
+  max_archive_size: 10        # taille max de l'archive Pareto 
+
+
+# ============================
+# Contraintes
+# ============================
+
+constraints:
+  lmax: false
+
