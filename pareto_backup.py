@@ -9,11 +9,6 @@ import matplotlib.pyplot as plt
 import mplcursors
 from algo_utils import assign_crowding_distance, crowding_distance
 
-
-# =============================================================================
-# ARCHIVE DE PARETO
-# =============================================================================
-
 class ParetoArchive:
     """Archive maintenant uniquement les solutions non dominées."""
     
@@ -142,23 +137,37 @@ def sol_signature(sol):
 # =============================================================================
 
 def generate_fronts(population, return_indices=False):
-    """Calcule les fronts de Pareto par dominance successive.
-
-    Args:
-        population: Liste de solutions
-        return_indices: Si True, retourne des listes d'indices au lieu de solutions
-
-    Returns:
-        Liste de fronts, chaque front étant une liste de solutions ou d'indices
     """
-    remaining = list(range(len(population)))
+    Calcule les fronts de Pareto.
+
+    Parameters
+    ----------
+    population : list[Solution]
+        Liste de solutions.
+    return_indices : bool
+        - False (par défaut) : retourne des listes de solutions [[sol, ...], ...]
+        - True : retourne des listes d'indices [[i1, i2, ...], [j1, ...], ...]
+
+    Returns
+    -------
+    fronts : list[list]
+        Liste de fronts, chaque front est une liste de solutions OU d'indices.
+    """
+    remaining = list(range(len(population)))  # on travaille sur des indices
     fronts_idx = []
 
     while remaining:
         current_front = []
         for i in remaining:
-            if not any(dominates(population[j], population[i]) 
-                      for j in remaining if i != j):
+            dominated = False
+            for j in remaining:
+                if i == j:
+                    continue
+                # on réutilise la fonction dominates(a, b)
+                if dominates(population[j], population[i]):
+                    dominated = True
+                    break
+            if not dominated:
                 current_front.append(i)
 
         fronts_idx.append(current_front)
@@ -167,6 +176,7 @@ def generate_fronts(population, return_indices=False):
     if return_indices:
         return fronts_idx
 
+    # sinon on renvoie les solutions correspondantes
     return [[population[i] for i in front] for front in fronts_idx]
 
 
@@ -217,142 +227,117 @@ def select_leaders(population):
 
     return leaders[0], leaders[1], leaders[2]
 
-
-# =============================================================================
-# VISUALISATION 3D DES FRONTS
-# =============================================================================
-
-def _add_jitter_if_needed(xs, ys, zs):
-    """Ajoute un léger jitter si des points se superposent."""
-    unique_pts = len(set(zip(xs, ys, zs)))
-    if unique_pts >= len(xs):
-        return xs, ys, zs
-    
-    # Calculer échelle de jitter proportionnelle à l'étendue
-    range_x = max(xs) - min(xs) if max(xs) != min(xs) else 1.0
-    range_y = max(ys) - min(ys) if max(ys) != min(ys) else 1.0
-    range_z = max(zs) - min(zs) if max(zs) != min(zs) else 1.0
-    jitter_scale = 0.03  # 3% de l'étendue
-    
-    xs = [x + np.random.normal(scale=jitter_scale * range_x) for x in xs]
-    ys = [y + np.random.normal(scale=jitter_scale * range_y) for y in ys]
-    zs = [z + np.random.normal(scale=jitter_scale * range_z) for z in zs]
-    
-    return xs, ys, zs
-
-
-def _create_tooltips(front, front_idx, sol_to_idx):
-    """Crée les tooltips pour les solutions d'un front."""
-    tooltips = []
-    for solution in front:
-        sol_num = sol_to_idx.get(sol_signature(solution), "?")
-        tooltip = (f"Front {front_idx} - Solution {sol_num}\n"
-                  f"Makespan: {solution.makespan:.2f}\n"
-                  f"Cost: {solution.cost:.2f}\n"
-                  f"Energy: {solution.energy:.2f}")
-        tooltips.append(tooltip)
-    return tooltips
-
-
-def _plot_front(ax, front, front_idx, sol_to_idx, colors, colormaps):
-    """Trace un front de Pareto en 3D avec surface et points."""
-    xs = [s.makespan for s in front]
-    ys = [s.cost for s in front]
-    zs = [s.energy for s in front]
-    
-    tooltips = _create_tooltips(front, front_idx, sol_to_idx)
-    xs, ys, zs = _add_jitter_if_needed(xs, ys, zs)
-    
-    color = colors[(front_idx - 1) % len(colors)]
-    cmap_name = colormaps[(front_idx - 1) % len(colormaps)]
-    
-    surf = None
-    # Tracer surface si au moins 3 points
-    if len(xs) >= 3:
-        surf = ax.plot_trisurf(xs, ys, zs, cmap=cmap_name, alpha=0.55, 
-                               linewidth=0.25, edgecolor='k')
-        sc = ax.scatter(xs, ys, zs, label=f"Front {front_idx} ({len(front)} sols)",
-                       s=55, color='white', edgecolor='black', linewidth=0.8, alpha=0.9)
-    else:
-        sc = ax.scatter(xs, ys, zs, label=f"Front {front_idx} ({len(front)} sols)",
-                       s=55, color=color, edgecolor='black', linewidth=0.8, alpha=0.8)
-    
-    # Ligne reliant les points du front 1
-    if front_idx == 1 and len(xs) > 1:
-        sorted_points = sorted(zip(xs, ys, zs), key=lambda t: t[0])
-        lx, ly, lz = zip(*sorted_points)
-        ax.plot(lx, ly, lz, linestyle='-', linewidth=2.0, color='black', alpha=0.6)
-    
-    return sc, tooltips, surf
-
-
+#Affichage graphique 
 def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
-    """Affiche les fronts de Pareto en 3D avec surfaces interpolées et tooltips interactifs.
-    
-    Args:
-        valid_solutions: Liste complète des solutions
-        fronts: Liste des fronts de Pareto
-        title: Titre du graphique
-    """
     fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection='3d')
-    
-    # Palettes de couleurs
+    # Palette de couleurs distinctes pour chaque front
     colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "brown", "pink", "olive"]
     colormaps = ['plasma', 'viridis', 'hot', 'cool', 'spring', 'summer', 'autumn', 'winter']
-    
-    # Configuration visuelle
+
+    # réglages visuels
     ax.set_facecolor("white")
     ax.grid(True, linestyle='--', linewidth=0.3, alpha=0.5)
-    
-    # Mapping solution -> index
-    sol_to_idx = {sol_signature(sol): idx + 1 for idx, sol in enumerate(valid_solutions)}
-    
+
     all_scatters = []
     all_tooltips = []
     surf_handles = []
+    surf_labels = []
     
-    # Tracer chaque front
-    for i, front in enumerate(fronts, 1):
-        if not front:
+    # Créer un mapping de solution (par valeurs) vers son index dans valid_solutions
+    sol_to_idx = {sol_signature(sol): idx + 1 for idx, sol in enumerate(valid_solutions)}
+
+    for i, front in enumerate(fronts):
+        if not front:  # Skip empty fronts
             continue
+            
+        xs, ys, zs = [], [], []
+        tooltips = []
+
+        for solution in front:
+            xs.append(solution.makespan)
+            ys.append(solution.cost)
+            zs.append(solution.energy)
+            # Tooltip avec les métriques + numéro du front + vrai numéro de solution
+            sol_num = sol_to_idx.get(sol_signature(solution), "?")
+            tooltip = (f"Front {i+1} - Solution {sol_num}\n"
+                      f"Makespan: {solution.makespan:.2f}\n"
+                      f"Cost: {solution.cost:.2f}\n"
+                      f"Energy: {solution.energy:.2f}")
+            tooltips.append(tooltip)
+
+        # Si beaucoup de points se superposent, ajouter un léger jitter pour les séparer visuellement
+        unique_pts = len(set(zip(xs, ys, zs)))
+        if unique_pts < len(xs):
+            # calculer une échelle de jitter proportionnelle à l'étendue des données
+            range_x = max(xs) - min(xs) if max(xs) != min(xs) else 1.0
+            range_y = max(ys) - min(ys) if max(ys) != min(ys) else 1.0
+            range_z = max(zs) - min(zs) if max(zs) != min(zs) else 1.0
+            jitter_scale = 0.03  # 3% de l'étendue pour bien séparer
+            xs = [x + np.random.normal(scale=jitter_scale * range_x) for x in xs]
+            ys = [y + np.random.normal(scale=jitter_scale * range_y) for y in ys]
+            zs = [z + np.random.normal(scale=jitter_scale * range_z) for z in zs]
+
+        color = colors[i % len(colors)]
+        cmap_name = colormaps[i % len(colormaps)]
+
+        # Tous les fronts : tracer une surface lissée (style heatmap) + points
+        if len(xs) >= 3:
+            tri = ax.plot_trisurf(xs, ys, zs, cmap=cmap_name, alpha=0.55, linewidth=0.25, edgecolor='k')
+            surf_handles.append(tri)
+            surf_labels.append(f"Front {i+1} surface")
+            # Points du front par-dessus en blanc
+            sc = ax.scatter(xs, ys, zs, label=f"Front {i+1} ({len(front)} sols)",
+                           s=55, color='white', edgecolor='black', linewidth=0.8, alpha=0.9)
+        else:
+            # Si moins de 3 points, juste scatter
+            sc = ax.scatter(xs, ys, zs, label=f"Front {i+1} ({len(front)} sols)",
+                           s=55, color=color, edgecolor='black', linewidth=0.8, alpha=0.8)
         
-        sc, tooltips, surf = _plot_front(ax, front, i, sol_to_idx, colors, colormaps)
         all_scatters.append(sc)
         all_tooltips.append(tooltips)
-        if surf:
-            surf_handles.append(surf)
-    
-    # Ajouter curseurs interactifs
+
+        # Ligne reliant les points du front 1 uniquement
+        if i == 0 and len(xs) > 1:
+            sorted_points = sorted(zip(xs, ys, zs), key=lambda t: t[0])
+            lx = [p[0] for p in sorted_points]
+            ly = [p[1] for p in sorted_points]
+            lz = [p[2] for p in sorted_points]
+            ax.plot(lx, ly, lz, linestyle='-', linewidth=2.0, color='black', alpha=0.6)
+
+    # Ajouter le curseur interactif pour tous les scatters
     for sc, tooltips in zip(all_scatters, all_tooltips):
         cursor = mplcursors.cursor(sc, hover=True)
         
+        # Utiliser une closure pour capturer tooltips
         def make_annotation(tooltip_list):
             def on_add(sel):
-                if sel.index < len(tooltip_list):
-                    sel.annotation.set_text(tooltip_list[sel.index])
-                    sel.annotation.get_bbox_patch().set(
-                        alpha=0.95, facecolor='lightyellow', 
-                        edgecolor='black', linewidth=1.5
-                    )
+                idx_point = sel.index
+                if idx_point < len(tooltip_list):
+                    sel.annotation.set_text(tooltip_list[idx_point])
+                    sel.annotation.get_bbox_patch().set(alpha=0.95, facecolor='lightyellow', 
+                                                        edgecolor='black', linewidth=1.5)
                     sel.annotation.set_fontsize(10)
             return on_add
         
         cursor.connect("add", make_annotation(tooltips))
-    
-    # Configuration des axes
+
+    # Axes + titres
     ax.set_xlabel("Makespan", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_ylabel("Cost", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_zlabel("Energy", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_title(title, fontsize=17, pad=20, fontweight='bold')
+
+    # Désactiver la perspective pour avoir un repère orthogonal
     ax.set_proj_type('ortho')
+
     ax.view_init(elev=20, azim=35)
-    
     plt.legend(fontsize=11, loc='upper left')
-    
+
+    # Ajouter colorbar si on a une surface
     if surf_handles:
-        plt.colorbar(surf_handles[0], shrink=0.6, aspect=12, pad=0.08, label='Energy (surface)')
-    
+        mappable = surf_handles[0]
+        plt.colorbar(mappable, shrink=0.6, aspect=12, pad=0.08, label='Energy (surface)')
     plt.tight_layout()
     plt.show()
 
