@@ -437,3 +437,83 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     plt.tight_layout()
     plt.show()
 
+
+# =============================================================================
+# FONCTIONS D'AFFICHAGE COMBINÉES
+# =============================================================================
+
+def compute_and_display_metrics(target, metric_type, donnees=None, hv_history=None, ref_point=None):
+    """
+    Calcule et affiche les métriques selon le type demandé.
+    
+    Args:
+        target: Archive (list) ou solution individuelle
+        metric_type: 'archive' ou 'solution'
+        donnees: Données du problème (requis pour metric_type='solution')
+        hv_history: Historique hypervolume (pour metric_type='archive')
+        ref_point: Point de référence (pour metric_type='archive')
+        
+    Returns:
+        tuple: (hv_history, ref_point) si metric_type='archive', sinon None
+    """
+    if metric_type == 'archive' and target:
+        objs_arch = extract_objectives(target)
+        
+        if hv_history is None:
+            hv_history, ref_point = init_hv_tracking(target)
+        else:
+            hv_history = update_hv_tracking(target, hv_history, ref_point)
+
+        div = diversity_spread(objs_arch)
+        sp = spacing_metric(objs_arch)
+        psize = pareto_size(objs_arch)
+        
+        print(f"\n[Metrics ARCHIVE] HV={hv_history[-1]:.4f}, "
+              f"Diversity={div:.4f}, Spacing={sp:.4f}, Pareto size={psize}")
+        
+        return hv_history, ref_point
+    
+    elif metric_type == 'solution' and target is not None and donnees is not None:
+        lbi = load_balancing_index(target, donnees)
+        fur = fog_utilization_ratio(target, donnees)
+        ee = energy_efficiency(target)
+        avg_lat = average_latency(target, donnees)
+        
+        print(f"\n[Metrics SOLUTION] LBI={lbi:.4f}, FUR={fur:.4f}, "
+              f"EE={ee:.4f}, AvgLatency={avg_lat:.4f}")
+        
+        return None
+    
+    return hv_history, ref_point
+
+
+def compute_and_display_archive_metrics(archive_solutions, hv_history, ref_point):
+    """Calcule et affiche les métriques de l'archive."""
+    return compute_and_display_metrics(archive_solutions, 'archive', 
+                                      hv_history=hv_history, ref_point=ref_point)
+
+
+def compute_and_display_alpha_metrics(alpha, donnees):
+    """Calcule et affiche les métriques du leader alpha."""
+    compute_and_display_metrics(alpha, 'solution', donnees=donnees)
+
+
+def compute_and_display_archive_solutions_metrics(archive_solutions, donnees):
+    """
+    Calcule et affiche les métriques pour toutes les solutions de l'archive.
+    
+    Args:
+        archive_solutions: Liste des solutions de l'archive
+        donnees: Données du problème
+    """
+    print("\n" + "="*70)
+    print("MÉTRIQUES FINALES - TOUTES LES SOLUTIONS DE L'ARCHIVE")
+    print("="*70)
+    
+    if archive_solutions:
+        for idx, solution in enumerate(archive_solutions, 1):
+            print(f"\n--- Solution {idx} ---")
+            compute_and_display_metrics(solution, 'solution', donnees=donnees)
+    else:
+        print("Aucune solution dans l'archive")
+
