@@ -97,6 +97,21 @@ def dominates(a, b): # permet de savoir si a domine b
             a.energy < b.energy
         )
     )
+
+def sol_signature(sol):
+    """Crée une signature unique pour une solution basée sur ses objectifs.
+    
+    Utilisé pour comparer les solutions par valeurs plutôt que par identité d'objet,
+    notamment après des copies profondes.
+    
+    Args:
+        sol: Solution avec attributs makespan, cost, energy
+        
+    Returns:
+        tuple: Signature (makespan, cost, energy) arrondie à 4 décimales
+    """
+    return (round(sol.makespan, 4), round(sol.cost, 4), round(sol.energy, 4))
+
 def generate_fronts(population, return_indices: bool = False):
     """
     Calcule les fronts de Pareto.
@@ -202,7 +217,9 @@ def select_leaders(population):
 def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
     fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection='3d')
-    colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "brown"]  # Couleurs par front
+    # Palette de couleurs distinctes pour chaque front
+    colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "brown", "pink", "olive"]
+    colormaps = ['plasma', 'viridis', 'hot', 'cool', 'spring', 'summer', 'autumn', 'winter']
 
     # réglages visuels
     ax.set_facecolor("white")
@@ -212,6 +229,9 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
     all_tooltips = []
     surf_handles = []
     surf_labels = []
+    
+    # Créer un mapping de solution (par valeurs) vers son index dans valid_solutions
+    sol_to_idx = {sol_signature(sol): idx + 1 for idx, sol in enumerate(valid_solutions)}
 
     for i, front in enumerate(fronts):
         if not front:  # Skip empty fronts
@@ -220,12 +240,13 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
         xs, ys, zs = [], [], []
         tooltips = []
 
-        for idx, solution in enumerate(front):
+        for solution in front:
             xs.append(solution.makespan)
             ys.append(solution.cost)
             zs.append(solution.energy)
-            # Tooltip avec les métriques + numéro du front
-            tooltip = (f"Front {i+1} - Solution {idx+1}\n"
+            # Tooltip avec les métriques + numéro du front + vrai numéro de solution
+            sol_num = sol_to_idx.get(sol_signature(solution), "?")
+            tooltip = (f"Front {i+1} - Solution {sol_num}\n"
                       f"Makespan: {solution.makespan:.2f}\n"
                       f"Cost: {solution.cost:.2f}\n"
                       f"Energy: {solution.energy:.2f}")
@@ -244,19 +265,20 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
             zs = [z + np.random.normal(scale=jitter_scale * range_z) for z in zs]
 
         color = colors[i % len(colors)]
+        cmap_name = colormaps[i % len(colormaps)]
 
-        # Fronts 1 et 2 : tracer aussi une surface lissée (style heatmap) en plus des points
-        if i in (0, 1) and len(xs) >= 3:
-            cmap_name = 'plasma' if i == 0 else 'viridis'
+        # Tous les fronts : tracer une surface lissée (style heatmap) + points
+        if len(xs) >= 3:
             tri = ax.plot_trisurf(xs, ys, zs, cmap=cmap_name, alpha=0.55, linewidth=0.25, edgecolor='k')
             surf_handles.append(tri)
             surf_labels.append(f"Front {i+1} surface")
-            # Points du front par-dessus
+            # Points du front par-dessus en blanc
             sc = ax.scatter(xs, ys, zs, label=f"Front {i+1} ({len(front)} sols)",
                            s=55, color='white', edgecolor='black', linewidth=0.8, alpha=0.9)
         else:
+            # Si moins de 3 points, juste scatter
             sc = ax.scatter(xs, ys, zs, label=f"Front {i+1} ({len(front)} sols)",
-                           s=55, color=color, edgecolor='black', linewidth=0.8, alpha=0.7, cmap='plasma')
+                           s=55, color=color, edgecolor='black', linewidth=0.8, alpha=0.8)
         
         all_scatters.append(sc)
         all_tooltips.append(tooltips)
