@@ -19,15 +19,17 @@ from utils_main import (
     compute_and_display_archive_metrics,
     display_leaders,
     compute_and_display_alpha_metrics,
-    compute_metrics_all_solutions,
     update_and_filter_population,
     display_final_summary,
     plot_final_results,
     check_early_stopping
 )
 
-# Visualisation des métriques
-from metrics_viz import plot_archive_metrics_visualization
+# Métriques et visualisations
+from metrics import (
+    compute_metrics_all_solutions,
+    plot_archive_metrics_visualization
+)
 
 
 def main():
