@@ -84,7 +84,7 @@ def main():
     print(f"\nTemps d'exécution total : {exec_time:.2f} secondes")
 
     # Affichage graphique
-    plot_final_results(archive_unique, hv_history, donnees)
+    plot_final_results(archive_unique, hv_history, donnees, valid_solutions)
 
 
 if __name__ == "__main__":

@@ -199,58 +199,109 @@ def select_leaders(population):
     return leaders[0], leaders[1], leaders[2]
 
 #Affichage graphique 
-def plot_fronts_3d(valid_solutions, fronts):
-    fig = plt.figure(figsize=(10, 8))
+def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
+    fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection='3d')
-    colors = ["red", "blue", "green", "orange", "purple"]  # Couleurs par front
+    colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "brown"]  # Couleurs par front
 
     # réglages visuels
     ax.set_facecolor("white")
     ax.grid(True, linestyle='--', linewidth=0.3, alpha=0.5)
 
-    for i, front in enumerate(fronts):
-        xs, ys, zs = [], [], []
-        tooltips = []   # texte à afficher au survol
+    all_scatters = []
+    all_tooltips = []
+    surf_handles = []
+    surf_labels = []
 
-        for solution in front:
+    for i, front in enumerate(fronts):
+        if not front:  # Skip empty fronts
+            continue
+            
+        xs, ys, zs = [], [], []
+        tooltips = []
+
+        for idx, solution in enumerate(front):
             xs.append(solution.makespan)
             ys.append(solution.cost)
             zs.append(solution.energy)
-            tooltips.append(f"Affectation : {solution.assignment}") #texte quand on survoles le point 
+            # Tooltip avec les métriques + numéro du front
+            tooltip = (f"Front {i+1} - Solution {idx+1}\n"
+                      f"Makespan: {solution.makespan:.2f}\n"
+                      f"Cost: {solution.cost:.2f}\n"
+                      f"Energy: {solution.energy:.2f}")
+            tooltips.append(tooltip)
+
+        # Si beaucoup de points se superposent, ajouter un léger jitter pour les séparer visuellement
+        unique_pts = len(set(zip(xs, ys, zs)))
+        if unique_pts < len(xs):
+            # calculer une échelle de jitter proportionnelle à l'étendue des données
+            range_x = max(xs) - min(xs) if max(xs) != min(xs) else 1.0
+            range_y = max(ys) - min(ys) if max(ys) != min(ys) else 1.0
+            range_z = max(zs) - min(zs) if max(zs) != min(zs) else 1.0
+            jitter_scale = 0.03  # 3% de l'étendue pour bien séparer
+            xs = [x + np.random.normal(scale=jitter_scale * range_x) for x in xs]
+            ys = [y + np.random.normal(scale=jitter_scale * range_y) for y in ys]
+            zs = [z + np.random.normal(scale=jitter_scale * range_z) for z in zs]
 
         color = colors[i % len(colors)]
 
-        # On dessine les points
-        sc = ax.scatter( xs, ys, zs, label=f"Front {i+1}", s=80, color=color, edgecolor="black", alpha=0.85)
-        cursor = mplcursors.cursor(sc, hover=True) # Survol interactif 
+        # Fronts 1 et 2 : tracer aussi une surface lissée (style heatmap) en plus des points
+        if i in (0, 1) and len(xs) >= 3:
+            cmap_name = 'plasma' if i == 0 else 'viridis'
+            tri = ax.plot_trisurf(xs, ys, zs, cmap=cmap_name, alpha=0.55, linewidth=0.25, edgecolor='k')
+            surf_handles.append(tri)
+            surf_labels.append(f"Front {i+1} surface")
+            # Points du front par-dessus
+            sc = ax.scatter(xs, ys, zs, label=f"Front {i+1} ({len(front)} sols)",
+                           s=55, color='white', edgecolor='black', linewidth=0.8, alpha=0.9)
+        else:
+            sc = ax.scatter(xs, ys, zs, label=f"Front {i+1} ({len(front)} sols)",
+                           s=55, color=color, edgecolor='black', linewidth=0.8, alpha=0.7, cmap='plasma')
+        
+        all_scatters.append(sc)
+        all_tooltips.append(tooltips)
 
-        @cursor.connect("add")
-        def on_add(sel, texts=tooltips):
-            idx_point = sel.index
-            sel.annotation.set_text(texts[idx_point])  # affiche "Affectation : [...]"
-            sel.annotation.get_bbox_patch().set(alpha=0.9)
-
-        # Ligne reliant les points du front 1
+        # Ligne reliant les points du front 1 uniquement
         if i == 0 and len(xs) > 1:
             sorted_points = sorted(zip(xs, ys, zs), key=lambda t: t[0])
             lx = [p[0] for p in sorted_points]
             ly = [p[1] for p in sorted_points]
             lz = [p[2] for p in sorted_points]
-            ax.plot(
-                lx, ly, lz,
-                linestyle='-',
-                linewidth=2.5,
-                color=color,
-                alpha=0.8
-            )
+            ax.plot(lx, ly, lz, linestyle='-', linewidth=2.0, color='black', alpha=0.6)
+
+    # Ajouter le curseur interactif pour tous les scatters
+    for sc, tooltips in zip(all_scatters, all_tooltips):
+        cursor = mplcursors.cursor(sc, hover=True)
+        
+        # Utiliser une closure pour capturer tooltips
+        def make_annotation(tooltip_list):
+            def on_add(sel):
+                idx_point = sel.index
+                if idx_point < len(tooltip_list):
+                    sel.annotation.set_text(tooltip_list[idx_point])
+                    sel.annotation.get_bbox_patch().set(alpha=0.95, facecolor='lightyellow', 
+                                                        edgecolor='black', linewidth=1.5)
+                    sel.annotation.set_fontsize(10)
+            return on_add
+        
+        cursor.connect("add", make_annotation(tooltips))
 
     # Axes + titres
-    ax.set_xlabel("Makespan", fontsize=12, labelpad=15)
-    ax.set_ylabel("Cost", fontsize=12, labelpad=15)
-    ax.set_zlabel("Energy", fontsize=12, labelpad=15)
-    ax.set_title("Fronts de Pareto (3D)", fontsize=16, pad=20)
+    ax.set_xlabel("Makespan", fontsize=13, labelpad=15, fontweight='bold')
+    ax.set_ylabel("Cost", fontsize=13, labelpad=15, fontweight='bold')
+    ax.set_zlabel("Energy", fontsize=13, labelpad=15, fontweight='bold')
+    ax.set_title(title, fontsize=17, pad=20, fontweight='bold')
+
+    # Désactiver la perspective pour avoir un repère orthogonal
+    ax.set_proj_type('ortho')
+
     ax.view_init(elev=20, azim=35)
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=11, loc='upper left')
+
+    # Ajouter colorbar si on a une surface
+    if surf_handles:
+        mappable = surf_handles[0]
+        plt.colorbar(mappable, shrink=0.6, aspect=12, pad=0.08, label='Energy (surface)')
     plt.tight_layout()
     plt.show()
 

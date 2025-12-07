@@ -59,7 +59,7 @@ def display_fronts(evaluated_solutions, fronts):
     """Affiche les fronts de Pareto de la population actuelle."""
     print("\n===== FRONTS NON DOMINES (population actuelle) =====")
     for i, front in enumerate(fronts):
-        print(f"\nFront {i+1} :")
+        print(f"\nFront {i+1} ({len(front)} solutions) :")
         for solution in front:
             try:
                 idx = evaluated_solutions.index(solution) + 1
@@ -181,11 +181,42 @@ def display_final_summary(valid_solutions, archive_unique, donnees):
               f"Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
 
 
-def plot_final_results(archive_unique, hv_history, donnees):
-    """Génère tous les graphiques finaux."""
-    archive_fronts = generate_fronts(archive_unique)
-    plot_fronts_3d(archive_unique, archive_fronts)
+def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None):
+    """Génère tous les graphiques finaux avec choix interactif du front à afficher."""
+    
+    # Choix du front à afficher
+    print("\n" + "="*70)
+    print("CHOIX DU FRONT DE PARETO À AFFICHER")
+    print("="*70)
+    print("1. Archive (front global non dominé)")
+    print("2. Population valide finale")
+    print("3. Les deux (archive + population)")
+    
+    choice = input("\nVotre choix (1, 2 ou 3) [défaut: 1]: ").strip()
+    
+    if choice == "2":
+        # Front de la population valide
+        if valid_solutions and len(valid_solutions) > 0:
+            population_fronts = generate_fronts(valid_solutions)
+            plot_fronts_3d(valid_solutions, population_fronts, title="Fronts de Pareto - Population Valide Finale")
+        else:
+            print("⚠️  Aucune solution valide disponible!")
+            
+    elif choice == "3":
+        # Les deux
+        if valid_solutions and len(valid_solutions) > 0:
+            population_fronts = generate_fronts(valid_solutions)
+            plot_fronts_3d(valid_solutions, population_fronts, title="Fronts de Pareto - Population Valide Finale")
+        
+        archive_fronts = generate_fronts(archive_unique)
+        plot_fronts_3d(archive_unique, archive_fronts, title="Fronts de Pareto - Archive Globale")
+        
+    else:
+        # Par défaut: archive
+        archive_fronts = generate_fronts(archive_unique)
+        plot_fronts_3d(archive_unique, archive_fronts, title="Fronts de Pareto - Archive Globale")
 
+    # Autres graphiques
     if hv_history is not None:
         plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
 
