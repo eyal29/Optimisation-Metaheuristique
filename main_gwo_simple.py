@@ -3,23 +3,20 @@ GWO mono-objectif pour comparaison avec MOGWO.
 Optimise une fonction de coût composite : makespan + cost + energy
 """
 
-import time
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Modules utilitaires
-from utils import load_config, load_data
-
-# Structures de données
-from solutions_definiton import Donnees, Solution
-
-# Algorithmes
-from algo_utils import generate_valid_solution, compute_a, repair_assignment, check_lmax_constraint
 
 
 # =============================================================================
 # FONCTION OBJECTIF COMPOSITE
 # =============================================================================
+
+import time
+from matplotlib import pyplot as plt
+import numpy as np
+
+from algo import compute_a, generate_valid_solution
+from initialization import load_config, load_data
+from utils_to_algo import Donnees, Solution, check_lmax_constraint, repair_assignment
+
 
 def composite_objective(solution):
     """

@@ -1,12 +1,13 @@
 import time
 import random
 import numpy as np
-import matplotlib.pyplot as plt 
-from utils import load_config, load_data
-from solutions_definiton import Donnees
-from pareto import ParetoArchive, select_leaders
-from algo_utils import generate_valid_solution, compute_a, gwo_update_population
-from metrics import *
+import matplotlib.pyplot as plt
+
+from algo import ParetoArchive, compute_a, generate_valid_solution, select_leaders
+from initialization import load_config, load_data
+from metrics import diversity_spread, extract_objectives, init_hv_tracking, pareto_size, spacing_metric, update_hv_tracking
+from utils_to_algo import Donnees, gwo_update_population 
+
 
 def run_gwo_single(
     pop_size,

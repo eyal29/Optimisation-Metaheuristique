@@ -1,35 +1,25 @@
-import time
-from utils import load_config, load_data
-from solutions_definiton import Donnees
-from pareto import generate_fronts, select_leaders, ParetoArchive
-from algo_utils import generate_valid_solution, compute_a
-from utils_main import (
-    evaluate_and_filter_solutions,
-    display_fronts,
-    display_archive,
-    compute_and_display_archive_metrics,
-    display_leaders,
-    compute_and_display_alpha_metrics,
-    update_and_filter_population,
-    display_final_summary,
-    plot_final_results,
-    check_early_stopping
-)
 
-from metrics import (
-    compute_metrics_all_solutions,
-    plot_archive_metrics_visualization
-)
-
-import sys
-import io
  
 # Redirection de la sortie standard vers un flux avec encodage UTF-8
+import io
+import sys
+import time
+
+from affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders
+from algo import ParetoArchive, check_early_stopping, compute_a, generate_fronts, generate_valid_solution, select_leaders
+from metrics import compute_metrics_all_solutions
+from initialization import initialize_algorithm
+from utils_to_algo import Donnees, check_lmax_constraint, gwo_update_population
+from visualization import plot_archive_metrics_visualization, plot_final_results
+
+
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 def main():
-    config = load_config("config.yaml")
+  # Initialisation des paramètres et des données
+    donnees, config, valid_solutions = initialize_algorithm("config.yaml")
 
+    # Paramètres du GWO extraits de la configuration
     MAX_ITER = config["gwo"]["max_iter"]
     POP_SIZE = config["gwo"]["population_size"]
     ARCHIVE_MAX = config["gwo"]["max_archive_size"]
@@ -38,18 +28,14 @@ def main():
     EARLY_STOPPING_THRESHOLD = config["gwo"]["early_stopping_threshold"]
     EARLY_STOPPING_PATIENCE = config["gwo"]["early_stopping_patience"]
 
+    # Initialisation de l'archive
     archive = ParetoArchive(max_size=ARCHIVE_MAX)
+    
+   
     hv_history = None
     ref_point = None
 
-    videos_path = config["paths"]["videos"]
-    vms_path = config["paths"]["vms"]
 
-    videos, vms = load_data(videos_path, vms_path)
-    donnees = Donnees(videos, vms)
-
-    # Générer des solutions valides
-    valid_solutions = [generate_valid_solution(donnees) for _ in range(POP_SIZE)]
     start_time = time.time()
 
     # Paramètres d'arrêt précoce
@@ -71,7 +57,32 @@ def main():
         print(f"a = {a:.4f}")
 
         # Évaluation + filtrage par contrainte Lmax
-        evaluated_solutions = evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE)
+        # Évaluation et filtrage des solutions par contrainte Lmax
+        evaluated_solutions = []
+        rejected_count = 0
+        
+        for idx, solution in enumerate(valid_solutions, 1):
+            solution.evaluate()
+            lmax_valid, lmax_info = check_lmax_constraint(solution, donnees)
+            solution.lmax_valid = lmax_valid
+            solution.lmax_info = lmax_info
+            
+            # Afficher les infos de la solution comme avant
+            if lmax_valid:
+                evaluated_solutions.append(solution)
+            else:
+                print(" Solution rejetée (ne respecte pas Lmax)")
+                rejected_count += 1
+        
+        # Si aucune solution valide, générer de nouvelles solutions
+        if not evaluated_solutions:
+            print("ATTENTION: Aucune solution ne respecte Lmax! Génération de nouvelles solutions.")
+            evaluated_solutions = [generate_valid_solution(donnees) for _ in range(len(valid_solutions))]
+            for sol in evaluated_solutions:
+                sol.evaluate()
+        
+        print(f"\nSolutions acceptées: {len(evaluated_solutions)}/{POP_SIZE}, "
+              f"rejetées: {POP_SIZE - len(evaluated_solutions)}")
 
         # Fronts de la population actuelle
         fronts = generate_fronts(evaluated_solutions)
@@ -89,9 +100,8 @@ def main():
         print("\n===== MÉTRIQUES ARCHIVE =====")
 
         # Métriques sur l'archive
-        hv_history, ref_point = compute_and_display_archive_metrics(
-            archive_solutions, hv_history, ref_point
-        )
+        hv_history, ref_point = compute_and_display_metrics(archive_solutions, 'archive', 
+                                      hv_history=hv_history, ref_point=ref_point)
 
         # Vérifier l'arrêt précoce basé sur l'hypervolume
         should_stop, iterations_without_improvement, prev_hv = check_early_stopping(
@@ -106,18 +116,18 @@ def main():
         display_leaders(evaluated_solutions, alpha, beta, delta)
 
         # Métriques sur le leader alpha
-        compute_and_display_alpha_metrics(alpha, donnees)
+        compute_and_display_metrics(alpha, 'solution', donnees=donnees)
 
         # Mise à jour de la population (GWO)
-        valid_solutions = update_and_filter_population(
-            evaluated_solutions, alpha, beta, delta, donnees, a, POP_SIZE
+        valid_solutions = gwo_update_population(
+            evaluated_solutions, alpha, beta, delta, donnees, a
         )
 
     # Nettoyage de l'archive
     archive_unique = archive.get_solutions()
 
     # Résumé final
-    display_final_summary(valid_solutions, archive_unique, donnees)
+    display_archive(archive_unique, show_summary=True, valid_solutions=valid_solutions, donnees=donnees)
     
     # Calcul des métriques pour TOUTES les solutions de l'archive
     metrics_data = compute_metrics_all_solutions(archive_unique, donnees)
