@@ -119,70 +119,65 @@ class ParetoArchive:
     def add(self, sol):
         """
         Ajoute une solution dans l'archive :
-          - retire les solutions dominées,
-          - pas de duplicata => uniquement les non dominés 
-          - réordonnant ensuite l'archive selon NSGA-II
+        - archive = uniquement solutions non dominées
+        - pas de doublons (mêmes objectifs)
+        - si max_size est défini, on garde seulement les max_size "meilleures"
+            selon NSGA-II (rang + crowding distance)
         """
-        # print(" ➤ Tentative d'ajout d'une nouvelle solution :")
-        # print(f"     Taille archive AVANT ajout : {len(self.archive)}")
-
-        # # Si sol est dominée par une solution de l’archive → on la rejette
-        # for s in self.archive:
-        #     if self._dominates(s, sol):
-        #         print("   ✘ SOLUTION REJETÉE : elle est dominée par une solution de l'archive.")
-        #         print(f"     Taille archive APRÈS tentative : {len(self.archive)}")
-        #         return False
-
-        # Retirer les solutions dominées par sol
-        new_archive = []
-        removed = 0
+ 
+        # 1) Si sol est dominée par une solution de l’archive → on la rejette
         for s in self.archive:
-            if self._dominates(sol, s):
-                removed += 1
-            else:
+            if self._dominates(s, sol):
+                # Solution inutile : déjà pire qu'une solution existante
+                return False
+ 
+        # 2) Retirer les solutions dominées par sol
+        new_archive = []
+        for s in self.archive:
+            # On ne garde que les solutions NON dominées par sol
+            if not self._dominates(sol, s):
                 new_archive.append(s)
-
-        if removed > 0:
-            print(f"   ✔ {removed} solution(s) dominée(s) supprimée(s) de l'archive.")
-        else:
-            print("   • Aucune solution supprimée (aucune dominée par la nouvelle).")
-
-        #Éviter les doublons (mêmes objectifs)
+ 
+        # 3) Éviter les doublons (mêmes objectifs / même signature)
         sig_new = sol_signature(sol)
         for s in new_archive:
             if sol_signature(s) == sig_new:
-                print("   ✘ SOLUTION NON AJOUTÉE : déjà présente (doublon).")
+                # La solution existe déjà : on ne l'ajoute pas
                 self.archive = new_archive
                 return False
-
-        # Ajouter la solution
+ 
+        # 4) Ajouter la nouvelle solution (non dominée, non dupliquée)
         new_archive.append(copy.deepcopy(sol))
         self.archive = new_archive
-        print("   ✔ SOLUTION AJOUTÉE à l'archive (avant tri NSGA-II).")
-    
-        # Fronts Pareto sur toute l'archive (indices)
+ 
+        # 5) Si pas de limite de taille → on s'arrête là
+        if self.max_size is None or len(self.archive) <= self.max_size:
+            return True
+ 
+        # 6) Tri NSGA-II (rang Pareto + crowding distance)
         fronts = generate_fronts(self.archive, return_indices=True)
-
-        # Crowding distance pour toutes les solutions
-        crowding = assign_crowding_distance(self.archive, fronts)
-
-        def sort_key(idx):
-            # trouver le rang (front index)
-            for f_index, front in enumerate(fronts):
-                if idx in front:
-                    rank = f_index
-                    break
-            return (rank, -crowding[idx])  # rank croissant, crowding décroissant
-
-        sorted_idx = sorted(range(len(self.archive)), key=sort_key)
-
-        # On garde uniquement les max_size premiers indices
-        selected_idx = sorted_idx[:self.max_size]
-        self.max_size = None
-
-
-        # On reconstruit l’archive avec ces solutions
+ 
+        # On ne garde que le front 1 (rang 0)
+        first_front = fronts[0]  
+ 
+        # Crowding distance calculée uniquement sur ce front
+        crowding = assign_crowding_distance(self.archive, [first_front])
+ 
+        # Si max_size n'est pas fixé ou que le front 1 contient déjà
+        # <= max_size solutions, on garde tout le front 1
+        if self.max_size is None or len(first_front) <= self.max_size:
+            selected_idx = first_front
+        else:
+            # Sinon on prend les self.max_size solutions les plus "éloignées"
+            # (plus grande crowding distance) dans le front 1
+            selected_idx = sorted(
+                first_front,
+                key=lambda idx: -crowding[idx]   # crowding décroissant
+            )[:self.max_size]
+ 
+        # On reconstruit l’archive avec **uniquement** les solutions du front 1 sélectionné
         self.archive = [self.archive[i] for i in selected_idx]
+        return True
 
     def get_solutions(self):
         """Retourne une copie sécurisée de l'archive."""
