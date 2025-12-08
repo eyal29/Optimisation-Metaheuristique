@@ -29,20 +29,20 @@ class ParetoArchive:
 
     def add(self, sol):
         """
-        Ajoute une solution dans l'archive  :
+        Ajoute une solution dans l'archive :
           - retire les solutions dominées,
-          - ne dupliquant pas les équivalentes,
+          - pas de duplicata => uniquement les non dominés 
+          - réordonnant ensuite l'archive selon NSGA-II
         """
-
-        print("\n==============================")
         print(" ➤ Tentative d'ajout d'une nouvelle solution :")
-        print(f"     Makespan={sol.makespan:.4f} | Cost={sol.cost:.4f} | Energy={sol.energy:.4f}")
         print(f"     Taille archive AVANT ajout : {len(self.archive)}")
 
-        # Vérifier si sol est dominée
+        # Si sol est dominée par une solution de l’archive → on la rejette
         for s in self.archive:
             if self._dominates(s, sol):
                 print("   ✘ SOLUTION REJETÉE : elle est dominée par une solution de l'archive.")
+                print(f"     Taille archive APRÈS tentative : {len(self.archive)}")
+                print("==============================")
                 return False
 
         # Retirer les solutions dominées par sol
@@ -59,7 +59,7 @@ class ParetoArchive:
         else:
             print("   • Aucune solution supprimée (aucune dominée par la nouvelle).")
 
-        # Vérifie les doublons
+        #Éviter les doublons (mêmes objectifs)
         sig_new = sol_signature(sol)
         for s in new_archive:
             if sol_signature(s) == sig_new:
@@ -67,36 +67,34 @@ class ParetoArchive:
                 self.archive = new_archive
                 return False
 
-        # Ajouter sol
+        # Ajouter la solution
         new_archive.append(copy.deepcopy(sol))
         self.archive = new_archive
+        print("   ✔ SOLUTION AJOUTÉE à l'archive (avant tri NSGA-II).")
+    
+        # Fronts Pareto sur toute l'archive (indices)
+        fronts = generate_fronts(self.archive, return_indices=True)
 
-        print(" ✔ SOLUTION AJOUTÉE à l'archive.")
-        print(f" Nouvelle taille archive : {len(self.archive)}")
+        # Crowding distance pour toutes les solutions
+        crowding = assign_crowding_distance(self.archive, fronts)
 
-        #  Si dépasse max_size, appliquer NSGA-II
-        if self.max_size and len(self.archive) > self.max_size:
-            print(f"   ⚠ Archive dépasse max_size ({self.max_size}). Réduction en cours...")
-            
-            fronts = generate_fronts(self.archive, return_indices=True)
-            crowding = assign_crowding_distance(self.archive, fronts)
+        # Fonction de tri (rang Pareto, puis crowding décroissante)
+        def sort_key(idx):
+            # trouver le rang (front index)
+            for f_index, front in enumerate(fronts):
+                if idx in front:
+                    rank = f_index
+                    break
+            return (rank, -crowding[idx])
 
-            def sort_key(idx):
-                for f_index, front in enumerate(fronts):
-                    if idx in front:
-                        rank = f_index
-                        break
-                return (rank, -crowding[idx])
+        sorted_idx = sorted(range(len(self.archive)), key=sort_key)
+        before = len(self.archive)
 
-            sorted_idx = sorted(range(len(self.archive)), key=sort_key)
+        # Si self.max_size est défini, on limite la taille (diversité)
+        if self.max_size:
             selected_idx = sorted_idx[:self.max_size]
-
-            before = len(self.archive)
-            self.archive = [self.archive[i] for i in selected_idx]
-
-            print(f"     Archive réduite de {before} → {len(self.archive)} solutions.")
-
-        print("==============================\n")
+        else:
+            selected_idx = sorted_idx
         return True
 
     def get_solutions(self):
@@ -109,14 +107,6 @@ class ParetoArchive:
 # =============================================================================
 
 def dominates(a, b):
-    """Retourne True si a domine b (minimisation sur tous les objectifs).
-    
-    Args:
-        a, b: Solutions avec attributs makespan, cost, energy
-    
-    Returns:
-        bool: True si a domine strictement b
-    """
     return (
         a.makespan <= b.makespan and
         a.cost <= b.cost and
@@ -126,16 +116,6 @@ def dominates(a, b):
 
 
 def sol_signature(sol):
-    """Crée une signature unique pour une solution basée sur ses objectifs.
-    
-    Utilisé pour comparer les solutions par valeurs plutôt que par identité d'objet.
-    
-    Args:
-        sol: Solution avec attributs makespan, cost, energy
-        
-    Returns:
-        tuple: Signature (makespan, cost, energy) arrondie à 4 décimales
-    """
     return (round(sol.makespan, 4), round(sol.cost, 4), round(sol.energy, 4))
 
 
@@ -220,9 +200,8 @@ def select_leaders(population):
     return leaders[0], leaders[1], leaders[2]
 
 
-# =============================================================================
 # VISUALISATION 3D DES FRONTS
-# =============================================================================
+# ===========================
 
 def _add_jitter_if_needed(xs, ys, zs):
     """Ajoute un léger jitter si des points se superposent."""
