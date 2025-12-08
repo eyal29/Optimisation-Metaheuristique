@@ -1,17 +1,8 @@
-# Bibliothèque standard
 import time
-
-# Modules utilitaires
 from utils import load_config, load_data
-
-# Structures de données
 from solutions_definiton import Donnees
-
-# Algorithmes et Pareto
 from pareto import generate_fronts, select_leaders, ParetoArchive
 from algo_utils import generate_valid_solution, compute_a
-
-# Affichage et résultats
 from utils_main import (
     evaluate_and_filter_solutions,
     display_fronts,
@@ -25,7 +16,6 @@ from utils_main import (
     check_early_stopping
 )
 
-# Métriques et visualisations
 from metrics import (
     compute_metrics_all_solutions,
     plot_archive_metrics_visualization
@@ -95,8 +85,13 @@ def main():
         archive_solutions = archive.get_solutions()
         display_archive(archive_solutions)
 
+        # AFFICHAGE CLAIR des METRICS ARCHIVE
+        print("\n===== MÉTRIQUES ARCHIVE =====")
+
         # Métriques sur l'archive
-        hv_history, ref_point = compute_and_display_archive_metrics(archive_solutions, hv_history, ref_point)
+        hv_history, ref_point = compute_and_display_archive_metrics(
+            archive_solutions, hv_history, ref_point
+        )
 
         # Vérifier l'arrêt précoce basé sur l'hypervolume
         should_stop, iterations_without_improvement, prev_hv = check_early_stopping(
@@ -114,7 +109,9 @@ def main():
         compute_and_display_alpha_metrics(alpha, donnees)
 
         # Mise à jour de la population (GWO)
-        valid_solutions = update_and_filter_population(evaluated_solutions, alpha, beta, delta, donnees, a, POP_SIZE)
+        valid_solutions = update_and_filter_population(
+            evaluated_solutions, alpha, beta, delta, donnees, a, POP_SIZE
+        )
 
     # Nettoyage de l'archive
     archive_unique = archive.get_solutions()
@@ -134,7 +131,6 @@ def main():
 
     # Affichage graphique
     plot_final_results(archive_unique, hv_history, donnees, valid_solutions)
-
 
 if __name__ == "__main__":
     main()

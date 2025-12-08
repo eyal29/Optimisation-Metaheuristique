@@ -11,24 +11,17 @@ paths:
 # ============================
 
 gwo:
-  population_size: 200       # taille de la population
-  max_iter: 150               # nombre d'itérations
+  population_size: 20    
+  max_iter: 50             
   a_max: 2.0
   a_min: 0.0
-<<<<<<< HEAD
-  max_archive_size: 500       # taille max de l'archive Pareto 
-=======
-  max_archive_size: 200       # taille max de l'archive Pareto 
->>>>>>> sara
-  
+  max_archive_size: 100       # taille max de l'archive Pareto 
+
   # Paramètres d'arrêt précoce (early stopping)
   early_stopping_threshold: 0.001   # 0.1% d'amélioration minimale
   early_stopping_patience: 30       # nombre d'itérations sans amélioration avant arrêt
 
-
-# ============================
 # Contraintes
-# ============================
 
 constraints:
   lmax: false
