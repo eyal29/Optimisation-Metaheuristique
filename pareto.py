@@ -1,5 +1,4 @@
 """Module de gestion de l'archive de Pareto et des fronts non dominés.
-
 Contient les algorithmes de dominance, sélection des leaders et visualisation 3D.
 """
 
@@ -9,32 +8,18 @@ import matplotlib.pyplot as plt
 import mplcursors
 from algo_utils import assign_crowding_distance, crowding_distance
 
-
-# =============================================================================
 # ARCHIVE DE PARETO
-# =============================================================================
+# =================
 
 class ParetoArchive:
     """Archive maintenant uniquement les solutions non dominées."""
-    
+
     def __init__(self, max_size=None):
-        """Initialise l'archive Pareto.
-        
-        Args:
-            max_size: Limite optionnelle du nombre de solutions (évite explosion mémoire)
-        """
         self.archive = []
         self.max_size = max_size
 
     def _dominates(self, a, b):
-        """Teste si a domine b (minimisation sur tous les objectifs).
-        
-        Args:
-            a, b: Solutions avec attributs makespan, cost, energy
-            
-        Returns:
-            bool: True si a domine strictement b
-        """
+        """Teste si a domine b (minimisation sur tous les objectifs) """
         return (
             a.makespan <= b.makespan and
             a.cost <= b.cost and
@@ -44,57 +29,74 @@ class ParetoArchive:
 
     def add(self, sol):
         """
-        Ajoute une solution dans l'archive en :
-          - retirant les solutions dominées,
+        Ajoute une solution dans l'archive  :
+          - retire les solutions dominées,
           - ne dupliquant pas les équivalentes,
-          - maintenant uniquement les non dominées.
         """
 
-        # 1. Vérifier si elle est dominée par quelqu’un dans l’archive
+        print("\n==============================")
+        print(" ➤ Tentative d'ajout d'une nouvelle solution :")
+        print(f"     Makespan={sol.makespan:.4f} | Cost={sol.cost:.4f} | Energy={sol.energy:.4f}")
+        print(f"     Taille archive AVANT ajout : {len(self.archive)}")
+
+        # Vérifier si sol est dominée
         for s in self.archive:
             if self._dominates(s, sol):
-                # Elle n'est pas meilleure → inutile de l’ajouter
+                print("   ✘ SOLUTION REJETÉE : elle est dominée par une solution de l'archive.")
                 return False
 
-        # 2. Retirer les solutions dominées par la nouvelle
+        # Retirer les solutions dominées par sol
         new_archive = []
+        removed = 0
         for s in self.archive:
-            if not self._dominates(sol, s):  
+            if self._dominates(sol, s):
+                removed += 1
+            else:
                 new_archive.append(s)
 
+        if removed > 0:
+            print(f"   ✔ {removed} solution(s) dominée(s) supprimée(s) de l'archive.")
+        else:
+            print("   • Aucune solution supprimée (aucune dominée par la nouvelle).")
+
+        # Vérifie les doublons
+        sig_new = sol_signature(sol)
+        for s in new_archive:
+            if sol_signature(s) == sig_new:
+                print("   ✘ SOLUTION NON AJOUTÉE : déjà présente (doublon).")
+                self.archive = new_archive
+                return False
+
+        # Ajouter sol
+        new_archive.append(copy.deepcopy(sol))
         self.archive = new_archive
 
-        # 3. Ajouter la solution (copie profonde pour éviter les effets de bord)
-        self.archive.append(copy.deepcopy(sol))
+        print(" ✔ SOLUTION AJOUTÉE à l'archive.")
+        print(f" Nouvelle taille archive : {len(self.archive)}")
 
-        # 4. Si l'archive dépasse la taille max → garder les plus "diversifiées"
+        #  Si dépasse max_size, appliquer NSGA-II
         if self.max_size and len(self.archive) > self.max_size:
-            # 4.1 Calcul des fronts Pareto de l'archive (indices)
+            print(f"   ⚠ Archive dépasse max_size ({self.max_size}). Réduction en cours...")
+            
             fronts = generate_fronts(self.archive, return_indices=True)
-
-            # 4.2 Calcul des crowding distances
             crowding = assign_crowding_distance(self.archive, fronts)
 
-            # 4.3 On trie les solutions par :
-            #     1. Rang Pareto (front 1 avant front 2)
-            #     2. Crowding distance décroissante
-            # (comme dans NSGA-II)
             def sort_key(idx):
-                # trouver le rang (front index)
                 for f_index, front in enumerate(fronts):
                     if idx in front:
                         rank = f_index
                         break
-                return (rank, -crowding[idx])  # rank croissant, crowding décroissant
+                return (rank, -crowding[idx])
 
             sorted_idx = sorted(range(len(self.archive)), key=sort_key)
-
-            # On garde uniquement les max_size premiers indices
             selected_idx = sorted_idx[:self.max_size]
 
-            # On reconstruit l’archive avec ces solutions
+            before = len(self.archive)
             self.archive = [self.archive[i] for i in selected_idx]
 
+            print(f"     Archive réduite de {before} → {len(self.archive)} solutions.")
+
+        print("==============================\n")
         return True
 
     def get_solutions(self):
