@@ -31,6 +31,11 @@ from metrics import (
     plot_archive_metrics_visualization
 )
 
+import sys
+import io
+ 
+# Redirection de la sortie standard vers un flux avec encodage UTF-8
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 def main():
     config = load_config("config.yaml")
