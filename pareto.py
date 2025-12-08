@@ -1,7 +1,3 @@
-"""Module de gestion de l'archive de Pareto et des fronts non dominés.
-Contient les algorithmes de dominance, sélection des leaders et visualisation 3D.
-"""
-
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,8 +5,6 @@ import mplcursors
 from algo_utils import assign_crowding_distance, crowding_distance
 
 # ARCHIVE DE PARETO
-# =================
-
 class ParetoArchive:
     """Archive maintenant uniquement les solutions non dominées."""
 
@@ -42,7 +36,6 @@ class ParetoArchive:
             if self._dominates(s, sol):
                 print("   ✘ SOLUTION REJETÉE : elle est dominée par une solution de l'archive.")
                 print(f"     Taille archive APRÈS tentative : {len(self.archive)}")
-                print("==============================")
                 return False
 
         # Retirer les solutions dominées par sol
@@ -78,34 +71,29 @@ class ParetoArchive:
         # Crowding distance pour toutes les solutions
         crowding = assign_crowding_distance(self.archive, fronts)
 
-        # Fonction de tri (rang Pareto, puis crowding décroissante)
         def sort_key(idx):
             # trouver le rang (front index)
             for f_index, front in enumerate(fronts):
                 if idx in front:
                     rank = f_index
                     break
-            return (rank, -crowding[idx])
+            return (rank, -crowding[idx])  # rank croissant, crowding décroissant
 
         sorted_idx = sorted(range(len(self.archive)), key=sort_key)
-        before = len(self.archive)
 
-        # Si self.max_size est défini, on limite la taille (diversité)
-        if self.max_size:
-            selected_idx = sorted_idx[:self.max_size]
-        else:
-            selected_idx = sorted_idx
-        return True
+        # On garde uniquement les max_size premiers indices
+        selected_idx = sorted_idx[:self.max_size]
+        self.max_size = None
+
+
+        # On reconstruit l’archive avec ces solutions
+        self.archive = [self.archive[i] for i in selected_idx]
 
     def get_solutions(self):
         """Retourne une copie sécurisée de l'archive."""
         return copy.deepcopy(self.archive)
 
-
-# =============================================================================
 # FONCTIONS DE DOMINANCE ET SIGNATURE
-# =============================================================================
-
 def dominates(a, b):
     return (
         a.makespan <= b.makespan and
@@ -114,15 +102,11 @@ def dominates(a, b):
         (a.makespan < b.makespan or a.cost < b.cost or a.energy < b.energy)
     )
 
-
 def sol_signature(sol):
     return (round(sol.makespan, 4), round(sol.cost, 4), round(sol.energy, 4))
 
 
-# =============================================================================
 # GÉNÉRATION DES FRONTS DE PARETO
-# =============================================================================
-
 def generate_fronts(population, return_indices=False):
     """Calcule les fronts de Pareto par dominance successive.
 
@@ -151,21 +135,8 @@ def generate_fronts(population, return_indices=False):
 
     return [[population[i] for i in front] for front in fronts_idx]
 
-
-# =============================================================================
 # SÉLECTION DES LEADERS
-# =============================================================================
-
 def select_leaders(population):
-    """Retourne (alpha, beta, delta) basés sur le rang et la diversité.
-    
-    Stratégie :
-    - d'abord le rang de front (F1 > F2 > F3)
-    - à l'intérieur de F1 : solutions les plus diversifiées (crowding distance élevée)
-    
-    Returns:
-        tuple: (alpha, beta, delta) - les 3 meilleurs leaders
-    """
     if not population:
         return None, None, None
 
@@ -201,8 +172,6 @@ def select_leaders(population):
 
 
 # VISUALISATION 3D DES FRONTS
-# ===========================
-
 def _add_jitter_if_needed(xs, ys, zs):
     """Ajoute un léger jitter si des points se superposent."""
     unique_pts = len(set(zip(xs, ys, zs)))

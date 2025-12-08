@@ -7,9 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# =============================================================================
 # MÉTRIQUES DE BASE ET HYPERVOLUME
-# =============================================================================
 
 def extract_objectives(solutions):
     """Transforme une liste de Solution en matrice (N,3): [makespan, cost, energy]."""
@@ -75,10 +73,7 @@ def update_hv_tracking(archive_solutions, hv_history, ref_point):
     hv_history.append(hv)
     return hv_history
 
-
-# =============================================================================
 # MÉTRIQUES DE QUALITÉ DES SOLUTIONS
-# =============================================================================
 
 def load_balancing_index(solution, donnees):
     """
@@ -126,11 +121,7 @@ def average_latency(solution, donnees):
                         for i in range(donnees.n))
     return total_latency / donnees.n
 
-
-# =============================================================================
 # MÉTRIQUES DE DIVERSITÉ ET QUALITÉ PARETO
-# =============================================================================
-
 def diversity_spread(objs):
     """
     Mesure de diversité: longueur moyenne des segments entre points voisins.
@@ -174,11 +165,7 @@ def spacing_metric(objs):
     distances = np.array(distances)
     return distances.std()
 
-
-# =============================================================================
 # VISUALISATIONS
-# =============================================================================
-
 def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
     """Trace la courbe de convergence de l'hypervolume au fil des itérations."""
     if not hv_history:
@@ -193,7 +180,6 @@ def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
     plt.show()
-
 
 def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     """
@@ -223,11 +209,7 @@ def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     plt.tight_layout()
     plt.show()
 
-
-# =============================================================================
 # CALCUL ET VISUALISATION DES MÉTRIQUES POUR L'ARCHIVE
-# =============================================================================
-
 def compute_metrics_all_solutions(archive_solutions, donnees):
     """
     Calcule et affiche les métriques pour toutes les solutions de l'archive.
