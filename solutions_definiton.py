@@ -45,9 +45,9 @@ class Donnees:
 
         for i in range(self.n):
             for j in range(self.p):
-                L_transfert = (2 * self.distances[j]) / c
+                L_transfert = (2 * self.distances[j]) / c + (self.q_i[i] / self.Dij[j])
                 processing_time = self.w_i[i] / self.P_j[j]
-                L_sortie = self.q_i[i] / self.Dij[j]
+                L_sortie = self.q_out[i] / self.Dij[j]
 
                 U_ij[i, j] = L_transfert + processing_time + L_sortie
 
