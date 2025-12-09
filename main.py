@@ -5,7 +5,7 @@ import io
 import sys
 import time
 
-from affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders
+from affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders, print_solution_info
 from algo import ParetoArchive, check_early_stopping, compute_a, evaluate_and_filter_solutions, generate_fronts, select_leaders
 from metrics import compute_metrics_all_solutions
 from initialization import initialize_algorithm
@@ -56,7 +56,7 @@ def main():
         a = compute_a(t, MAX_ITER, a_max=A_MAX, a_min=A_MIN)
         print(f"a = {a:.4f}")
 
-        # Évaluation + filtrage par contrainte Lmax
+        # Évaluation 
         evaluated_solutions = evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE)
 
         # Fronts de la population actuelle
@@ -101,6 +101,9 @@ def main():
     # Nettoyage de l'archive
     archive_unique = archive.get_solutions()
 
+    print("\n\n===== DÉTAILS DES SOLUTIONS FINALES DE L'ARCHIVE =====")
+    for idx, solution in enumerate(archive_unique, 1):
+        print_solution_info(solution, idx)
     # Résumé final
     display_archive(archive_unique, show_summary=True, valid_solutions=valid_solutions, donnees=donnees)
     

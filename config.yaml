@@ -6,17 +6,14 @@ paths:
 
 # GWO Configuration
 gwo:
-  population_size: 200   
-  max_iter: 150            
+  population_size: 200  
+  max_iter: 150         
   a_max: 2.0
   a_min: 0.0
-  max_archive_size: 100       # taille max de l'archive Pareto 
+  max_archive_size: 100     # taille max de l'archive Pareto 
   # Paramètres d'arrêt précoce (early stopping)
   early_stopping_threshold: 0.001  
   early_stopping_patience: 30     
 
-# Contraintes
-constraints:
-  lmax: False
   
 

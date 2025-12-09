@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-from utils_to_algo import assign_crowding_distance, check_lmax_constraint, crowding_distance, Solution, dominates, gwo_update_population, sol_signature
+from utils_to_algo import assign_crowding_distance, crowding_distance, Solution, dominates, gwo_update_population, sol_signature
 # from utils_main import print_solution_info
 
 
@@ -30,7 +30,6 @@ def compute_a(iteration, max_iter, a_max, a_min):
 
 def evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE):
     """
-    Évalue les solutions et filtre celles qui respectent la contrainte Lmax.
     
     Args:
         valid_solutions: Liste des solutions à évaluer
@@ -41,31 +40,12 @@ def evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE):
         Liste des solutions évaluées et valides
     """
     evaluated_solutions = []
-    rejected_count = 0
-    
-    for idx, solution in enumerate(valid_solutions, 1):
+
+    for solution in valid_solutions:
         solution.evaluate()
-        lmax_valid, lmax_info = check_lmax_constraint(solution, donnees)
-        solution.lmax_valid = lmax_valid
-        solution.lmax_info = lmax_info
-        
-        # print_solution_info(solution, idx, lmax_valid, lmax_info)
-        
-        if lmax_valid:
-            evaluated_solutions.append(solution)
-        else:
-            print(" Solution rejetée (ne respecte pas Lmax)")
-            rejected_count += 1
-    
-    # Si aucune solution valide, générer de nouvelles solutions
-    if not evaluated_solutions:
-        print("ATTENTION: Aucune solution ne respecte Lmax! Génération de nouvelles solutions.")
-        evaluated_solutions = [generate_valid_solution(donnees) for _ in range(len(valid_solutions))]
-        for sol in evaluated_solutions:
-            sol.evaluate()
-    
-    print(f"\nSolutions acceptées: {len(evaluated_solutions)}/{POP_SIZE}, "
-          f"rejetées: {POP_SIZE - len(evaluated_solutions)}")
+        evaluated_solutions.append(solution)
+
+    print(f"\nSolutions évaluées: {len(evaluated_solutions)}/{POP_SIZE}")
     
     return evaluated_solutions
 
@@ -278,24 +258,11 @@ def update_and_filter_population(evaluated_solutions, alpha, beta, delta, donnee
         Liste des solutions valides après mise à jour
     """
     new_population = gwo_update_population(evaluated_solutions, alpha, beta, delta, donnees, a)
+
+    # On suppose que la réparation mémoire dans gwo_update_population garantit 
+    # une population 'valide' pour les autres contraintes.
+
+    print(f"\nPopulation mise à jour (taille: {len(new_population)})")
     
-    valid_solutions = [sol for sol in new_population 
-                       if check_lmax_constraint(sol, donnees)[0]]
-    
-    # Générer de nouvelles solutions si nécessaire
-    max_attempts = 1000
-    attempts = 0
-    
-    while len(valid_solutions) < POP_SIZE and attempts < max_attempts:
-        new_sol = generate_valid_solution(donnees)
-        if check_lmax_constraint(new_sol, donnees)[0]:
-            valid_solutions.append(new_sol)
-        attempts += 1
-    
-    if len(valid_solutions) < POP_SIZE:
-        print(f"\n⚠️  ATTENTION: Impossible de trouver {POP_SIZE} solutions valides!")
-        print(f"   Seuil Lmax trop restrictif? Trouvé: {len(valid_solutions)}/{POP_SIZE}")
-        print(f"   Utilisation de {len(valid_solutions)} solutions pour l'itération suivante.")
-    
-    return valid_solutions
+    return new_population
 

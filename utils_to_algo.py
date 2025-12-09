@@ -182,63 +182,6 @@ def assign_crowding_distance(population, pareto_fronts):
 
     return crowding
 
-
-def check_lmax_constraint(solution, donnees):
-    """
-    Vérifie si une solution respecte la contrainte de latence maximale Lmax.
-    
-    Pour chaque VM j : sum_i(U_ij * x_ij) <= L_max
-    où U_ij est la latence totale pour la vidéo i sur VM j.
-    
-    Retourne : (bool, dict)
-        - bool : True si valide, False sinon
-        - dict : infos sur violations (seuil, latences par VM, violations)
-    """
-    try:
-        from initialization import load_config
-        config = load_config("config.yaml")
-        lmax_config = config.get("constraints", {}).get("lmax", False)
-    except Exception:
-        return True, None
-    
-    # Si lmax est False, pas de contrainte
-    if lmax_config is False or lmax_config == "false":
-        return True, None
-    
-    # Si lmax est True, valeur par défaut
-    if lmax_config is True or lmax_config == "true":
-        lmax_threshold = 100.0
-    else:
-        try:
-            lmax_threshold = float(lmax_config)
-        except (ValueError, TypeError):
-            return True, None
-    
-    # Calculer latences par VM
-    U = donnees.U_ij
-    n = donnees.n
-    p = donnees.p
-    
-    vm_latencies = np.zeros(p)
-    for i in range(n):
-        vm_idx = int(solution.assignment[i])
-        vm_latencies[vm_idx] += U[i, vm_idx]
-    
-    # Déterminer violations
-    violations = []
-    for j in range(p):
-        if vm_latencies[j] > lmax_threshold:
-            violations.append((j, vm_latencies[j]))
-    
-    info = {
-        "threshold": lmax_threshold,
-        "vm_latencies": vm_latencies.tolist(),
-        "violations": violations,
-        "is_valid": len(violations) == 0
-    }
-    
-    return len(violations) == 0, info
-
 def gwo_update_population(population, alpha, beta, delta, donnees, a):
     """Met à jour la population selon les leaders GWO."""
     

@@ -4,18 +4,17 @@
 
 from algo import generate_fronts
 from metrics import average_latency, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
-from utils_to_algo import check_lmax_constraint, sol_signature
+from utils_to_algo import sol_signature
 
 
-def print_solution_info(solution, idx, lmax_valid, lmax_info):
+def print_solution_info(solution, idx,):
     """
     Affiche les informations d'une solution de manière formatée.
     
     Args:
         solution: Solution à afficher
         idx: Numéro de la solution (1-based)
-        lmax_valid: Booléen indiquant si la contrainte Lmax est respectée
-        lmax_info: Dictionnaire avec les informations sur la contrainte Lmax
+
     """
     print(f"\nSolution {idx}:")
     print(f"  Affectation: {solution.assignment}")
@@ -23,13 +22,6 @@ def print_solution_info(solution, idx, lmax_valid, lmax_info):
     print(f"  Cout total: {solution.cost}")
     print(f"  Energie totale: {solution.energy}")
     
-    if lmax_info is not None:
-        status = "✓ Valide" if lmax_valid else "✗ Violée"
-        print(f"  Contrainte Lmax: {status} (seuil={lmax_info['threshold']:.2f})")
-        if not lmax_valid:
-            print(f"    Violations: {lmax_info['violations']}")
-    else:
-        print("  Contrainte Lmax: N/A (désactivée)")
     
     print("----------")
 
@@ -59,21 +51,15 @@ def display_archive(archive_solutions, show_summary=False, valid_solutions=None,
         donnees: Données du problème (requis si show_summary=True)
     """
     if show_summary and valid_solutions is not None and donnees is not None:
-        valid_count_population = sum(1 for sol in valid_solutions 
-                                     if check_lmax_constraint(sol, donnees)[0])
-        valid_count_archive = sum(1 for sol in archive_solutions 
-                                  if hasattr(sol, 'lmax_valid') and sol.lmax_valid)
-        
+ 
         print("\n" + "="*70)
-        print("RÉSUMÉ - Solutions valides vs total")
+        print("RÉSUMÉ - Solutions (post-GWO)")
         print("="*70)
-        print(f"Population finale : {valid_count_population}/{len(valid_solutions)} solutions valides")
+        print(f"Population finale : {len(valid_solutions)} solutions")
         print(f"Archive finale : {len(archive_solutions)} solutions (sans doublons)")
-        print(f"Solutions valides dans archive (Lmax) : {valid_count_archive}/{len(archive_solutions)}")
         print("="*70)
-    
+
     print("\n===== ARCHIVE (FRONT GLOBAL NON DOMINE) =====")
-    
     archive_fronts = generate_fronts(archive_solutions)
     sol_to_idx = {sol_signature(sol): idx + 1 for idx, sol in enumerate(archive_solutions)}
     
