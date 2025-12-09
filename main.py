@@ -1,12 +1,10 @@
 
- 
-# Redirection de la sortie standard vers un flux avec encodage UTF-8
 import io
 import sys
 import time
 
 from affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders, finalize_and_report
-from algo import check_early_stopping, compute_a, evaluate_and_filter_solutions, generate_fronts, select_leaders
+from algo import check_early_stopping, compute_a, evaluate_solutions, generate_fronts, select_leaders
 from initialization import  initialize_full_algorithm
 from utils_to_algo import gwo_update_population
 from visualization import plot_final_results
@@ -37,7 +35,7 @@ def main():
         print(f"a = {a:.4f}")
 
         # Évaluation, Fronts, Archive
-        evaluated_solutions = evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE)
+        evaluated_solutions = evaluate_solutions(valid_solutions, donnees, POP_SIZE)
         fronts = generate_fronts(evaluated_solutions)
         display_fronts(evaluated_solutions, fronts)
         for sol in evaluated_solutions:

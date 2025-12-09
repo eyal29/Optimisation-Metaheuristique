@@ -27,7 +27,7 @@ def compute_a(iteration, max_iter, a_max, a_min):
     return a_max - (a_max - a_min) * (iteration / max_iter)
 
 
-def evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE):
+def evaluate_solutions(valid_solutions, donnees, POP_SIZE):
     """
     
     Args:
@@ -242,26 +242,4 @@ def select_leaders(population):
     return leaders[0], leaders[1], leaders[2]
 
 
-def update_and_filter_population(evaluated_solutions, alpha, beta, delta, donnees, a, POP_SIZE):
-    """
-    Met à jour la population avec GWO et filtre les solutions valides.
-    
-    Args:
-        evaluated_solutions: Population actuelle
-        alpha, beta, delta: Leaders de la meute
-        donnees: Données du problème
-        a: Paramètre de convergence GWO
-        POP_SIZE: Taille de la population
-    
-    Returns:
-        Liste des solutions valides après mise à jour
-    """
-    new_population = gwo_update_population(evaluated_solutions, alpha, beta, delta, donnees, a)
-
-    # On suppose que la réparation mémoire dans gwo_update_population garantit 
-    # une population 'valide' pour les autres contraintes.
-
-    print(f"\nPopulation mise à jour (taille: {len(new_population)})")
-    
-    return new_population
 
