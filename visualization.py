@@ -147,7 +147,7 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
         # Tooltips pour les points Gloutons
         greedy_tooltips = []
         for name, sol in greedy_points.items():
-             tooltip = (f"GREEDY: {name}\n"
+             tooltip = (f"ALGO: {name}\n"
                        f"Makespan: {sol.makespan:.2f}\n"
                        f"Cost: {sol.cost:.2f}\n"
                        f"Energy: {sol.energy:.2f}")
@@ -377,7 +377,7 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
 
 #anciennement dans utils_main.py:
 
-def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, greedy_points=None, metrics_data=None):
+def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, reference_solutions=None, metrics_data=None):
     """
     Génère tous les graphiques finaux avec affichage de l'archive complète.
     
@@ -394,30 +394,47 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
     
     archive_fronts = generate_fronts(archive_unique)
     figures = []
+    if reference_solutions:
+        greedy_points = {k: v for k, v in reference_solutions.items() if k.startswith('Greedy')}
+        gwo_mono_points = {k: v for k, v in reference_solutions.items() if k.startswith('GWO-Mono')}
+    else:
+        greedy_points = {}
+        gwo_mono_points = {}
 
-    # Appel de la fonction 3D avec les points Gloutons
-    fig_3d = plot_fronts_3d(archive_unique, archive_fronts, 
-                   title="Fronts de Pareto - Archive Globale (GWO vs Greedy)",
+    # 1. GRAPH 3D - GWO-NSGA-II vs GREEDY
+    fig_3d_greedy = plot_fronts_3d(archive_unique, archive_fronts, 
+                   title="Fronts de Pareto - GWO-NSGA-II vs Greedy",
                    greedy_points=greedy_points)
-    if fig_3d: figures.append(fig_3d)
+    if fig_3d_greedy: figures.append(fig_3d_greedy)
     
-    print(f"✓ Archive affichée avec {len(archive_fronts)} front(s) "
-          f"et {len(archive_unique)} solution(s)")
+    # 2. GRAPH 3D - GWO-NSGA-II vs GWO MONO
+    if gwo_mono_points:
+        fig_3d_mono = plot_fronts_3d(archive_unique, archive_fronts, 
+                       title="Fronts de Pareto - GWO-NSGA-II vs GWO Mono",
+                       greedy_points=gwo_mono_points) # Réutiliser greedy_points car la structure est la même
+        if fig_3d_mono: figures.append(fig_3d_mono)
 
+
+    # 3. Plot HV
     if hv_history:
         fig_hv, _ = plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
         if fig_hv: figures.append(fig_hv)
 
+    # 4. Plot 2D
     if archive_unique:
         objs_arch_final = extract_objectives(archive_unique)
         fig_2d, _ = plot_pareto_2d(objs_arch_final, x_idx=0, y_idx=1, 
                       x_label="Makespan", y_label="Cost")
         if fig_2d: figures.append(fig_2d)
         
+    # 5. Plot Métriques d'Archive
     if metrics_data:
         # Note: plot_archive_metrics_visualization a été modifié en 1.1
         fig_metrics = plot_archive_metrics_visualization(metrics_data, archive_unique)
         if fig_metrics: figures.append(fig_metrics)
+        
     print(f"✓ {len(figures)} figures générées et affichées simultanément.")
+    
+    # AFFICHAGE SIMULTANÉ DE TOUTES LES FIGURES
     plt.show()
     # return

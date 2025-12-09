@@ -5,6 +5,7 @@
 import time
 from algo import generate_fronts
 from greedy import generate_greedy_solution
+from main_gwo_simple import solve_gwo_mono
 from metrics import average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
 from utils_to_algo import sol_signature
 from visualization import plot_archive_metrics_visualization, plot_final_results
@@ -166,18 +167,28 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
     sol_greedy_c = generate_greedy_solution(donnees, greedy_mode='cost')
     sol_greedy_e = generate_greedy_solution(donnees, greedy_mode='energy')
 
-    # Stocker les solutions Greedy avec un nom descriptif
-    greedy_solutions = {
+    print("\n[GWO Mono] Génération des 3 solutions mono-objectives...")
+    from initialization import load_config # Temporaire, pour le test
+    config = load_config("config.yaml")
+    sol_gwo_m = solve_gwo_mono(donnees, config, objective_mode='makespan')
+    sol_gwo_c = solve_gwo_mono(donnees, config, objective_mode='cost')
+    sol_gwo_e = solve_gwo_mono(donnees, config, objective_mode='energy')
+
+    # Stocker toutes les solutions de référence
+    reference_solutions = {
         'Greedy-Makespan': sol_greedy_m,
         'Greedy-Cost': sol_greedy_c,
-        'Greedy-Energy': sol_greedy_e
+        'Greedy-Energy': sol_greedy_e,
+        'GWO-Mono-Makespan': sol_gwo_m,
+        'GWO-Mono-Cost': sol_gwo_c,
+        'GWO-Mono-Energy': sol_gwo_e
     }
+
     
     # Affichage des solutions Gloutonnes
-    print("\n--- SOLUTIONS GLOUTONNES ---")
-    for name, sol in greedy_solutions.items():
+    print("\n--- SOLUTIONS DE RÉFÉRENCE ---")
+    for name, sol in reference_solutions.items():
         print(f"[{name}] Makespan={sol.makespan:.4f}, Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
-
     # =========================================================================
     # 📈 ÉTAPE DE RAPPORT FINAL (AFFICHAGE ET VISUALISATION)
     # =========================================================================
@@ -199,4 +210,4 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
     print(f"\nTemps d'exécution total : {exec_time:.2f} secondes")
 
     # Affichage graphique (Visualisation)
-    plot_final_results(archive_unique, hv_history, donnees, valid_solutions, greedy_points=greedy_solutions, metrics_data=metrics_data)
+    plot_final_results(archive_unique, hv_history, donnees, valid_solutions, reference_solutions, metrics_data=metrics_data)
