@@ -21,11 +21,6 @@ def print_solution_info(solution, idx,):
     """
     print(f"\nSolution {idx}:")
     print(f"  Affectation: {solution.assignment}")
-    print(f"  Makespan: {solution.makespan}")
-    print(f"  Cout total: {solution.cost}")
-    print(f"  Energie totale: {solution.energy}")
-    
-    
     print("----------")
 
 # =============================================================================
@@ -53,15 +48,7 @@ def display_archive(archive_solutions, show_summary=False, valid_solutions=None,
         valid_solutions: Population finale (requis si show_summary=True)
         donnees: Données du problème (requis si show_summary=True)
     """
-    if show_summary and valid_solutions is not None and donnees is not None:
  
-        print("\n" + "="*70)
-        print("RÉSUMÉ - Solutions (post-GWO)")
-        print("="*70)
-        print(f"Population finale : {len(valid_solutions)} solutions")
-        print(f"Archive finale : {len(archive_solutions)} solutions (sans doublons)")
-        print("="*70)
-
     print("\n===== ARCHIVE (FRONT GLOBAL NON DOMINE) =====")
     archive_fronts = generate_fronts(archive_solutions)
     sol_to_idx = {sol_signature(sol): idx + 1 for idx, sol in enumerate(archive_solutions)}
@@ -158,7 +145,7 @@ def compute_and_display_archive_solutions_metrics(archive_solutions, donnees):
         print("Aucune solution dans l'archive")
 
 
-def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time):
+def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time, plot_final_results):
     """
     Gère l'exécution des Greedys, l'affichage final, le calcul des métriques et les visualisations.
     """
@@ -204,7 +191,7 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
     
     # Calcul des métriques pour TOUTES les solutions de l'archive et visualisation
     metrics_data = compute_metrics_all_solutions(archive_unique, donnees)
-    plot_archive_metrics_visualization(metrics_data, archive_unique)
+    # plot_archive_metrics_visualization(metrics_data, archive_unique)
 
     # Affichage du temps d'exécution
     end_time = time.time()
@@ -212,4 +199,4 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
     print(f"\nTemps d'exécution total : {exec_time:.2f} secondes")
 
     # Affichage graphique (Visualisation)
-    plot_final_results(archive_unique, hv_history, donnees, valid_solutions, greedy_points=greedy_solutions)
+    plot_final_results(archive_unique, hv_history, donnees, valid_solutions, greedy_points=greedy_solutions, metrics_data=metrics_data)

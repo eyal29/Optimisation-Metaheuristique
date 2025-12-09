@@ -9,6 +9,7 @@ from affichage import compute_and_display_metrics, display_archive, display_fron
 from algo import check_early_stopping, compute_a, evaluate_and_filter_solutions, generate_fronts, select_leaders
 from initialization import  initialize_full_algorithm
 from utils_to_algo import gwo_update_population
+from visualization import plot_final_results
 
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -66,7 +67,7 @@ def main():
         )
 
     # 3. FINALISATION ET RAPPORT
-    finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time)
+    finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time, plot_final_results)
 
 
 if __name__ == "__main__":

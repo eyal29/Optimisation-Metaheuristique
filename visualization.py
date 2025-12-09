@@ -9,7 +9,7 @@ import mplcursors
 import numpy as np
 
 from algo import generate_fronts
-from metrics import _compute_composite_scores, extract_objectives
+from metrics import _compute_composite_scores, compute_metrics_all_solutions, extract_objectives
 from utils_to_algo import sol_signature
 
 
@@ -172,7 +172,8 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
         plt.colorbar(surf_handles[0], shrink=0.6, aspect=12, pad=0.08, label='Energy (surface)')
     
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    return fig
 
 
 
@@ -183,44 +184,48 @@ def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
     """Trace la courbe de convergence de l'hypervolume au fil des itérations."""
     if not hv_history:
         print("hv_history est vide, rien à tracer.")
-        return
+        return None, None # Retourne None, None si rien à tracer
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(range(len(hv_history)), hv_history, marker="o")
-    plt.xlabel("Itération", fontsize=12)
-    plt.ylabel("Hypervolume", fontsize=12)
-    plt.title(title, fontsize=14)
-    plt.grid(True, linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.show()
+    fig = plt.figure(figsize=(8, 5)) # <-- Utiliser fig = plt.figure() pour retourner l'objet Figure
+    ax = fig.add_subplot(111)
+    
+    ax.plot(range(len(hv_history)), hv_history, marker="o")
+    ax.set_xlabel("Itération", fontsize=12)
+    ax.set_ylabel("Hypervolume", fontsize=12)
+    ax.set_title(title, fontsize=14)
+    ax.grid(True, linestyle="--", alpha=0.5)
+    fig.tight_layout()
+    # plt.show() <-- SUPPRIMÉ
+    
+    return fig, ax # <-- Retourne la Figure et les Axes
 
 def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     """
     Visualisation 2D de la Pareto front.
     La couleur représente l'énergie.
-    
-    Args:
-        objs: array (N,3) = [makespan, cost, energy]
-        x_idx, y_idx: indices des objectifs à mettre en x et y (0,1,2)
     """
     if objs is None or len(objs) == 0:
         print("objs est vide, rien à tracer.")
-        return
+        return None, None # Retourne None, None si rien à tracer
 
     x = objs[:, x_idx]
     y = objs[:, y_idx]
     energy = objs[:, 2]
 
-    plt.figure(figsize=(7, 6))
-    sc = plt.scatter(x, y, c=energy, s=70, edgecolor="black", alpha=0.85)
-    plt.xlabel(x_label, fontsize=12)
-    plt.ylabel(y_label, fontsize=12)
-    plt.title("Distribution des solutions Pareto (2D)", fontsize=14)
-    cbar = plt.colorbar(sc)
+    fig = plt.figure(figsize=(7, 6)) # <-- Utiliser fig = plt.figure() pour retourner l'objet Figure
+    ax = fig.add_subplot(111)
+    
+    sc = ax.scatter(x, y, c=energy, s=70, edgecolor="black", alpha=0.85)
+    ax.set_xlabel(x_label, fontsize=12)
+    ax.set_ylabel(y_label, fontsize=12)
+    ax.set_title("Distribution des solutions Pareto (2D)", fontsize=14)
+    cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label("Energy", fontsize=11)
-    plt.grid(True, linestyle="--", alpha=0.4)
-    plt.tight_layout()
-    plt.show()
+    ax.grid(True, linestyle="--", alpha=0.4)
+    fig.tight_layout()
+    # plt.show() <-- SUPPRIMÉ
+    
+    return fig, ax # <-- Retourne la Figure et les Axes
 
 #anciennement dans metrics.py graph pour l'archive:
 def _create_metric_subplot(ax, solution_indices, values, metric_name, config):
@@ -367,11 +372,12 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
                  fontsize=16, fontweight='bold', y=0.995)
     
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    return fig
 
 #anciennement dans utils_main.py:
 
-def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, greedy_points=None):
+def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, greedy_points=None, metrics_data=None):
     """
     Génère tous les graphiques finaux avec affichage de l'archive complète.
     
@@ -387,19 +393,31 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
     print("="*70)
     
     archive_fronts = generate_fronts(archive_unique)
-    
+    figures = []
+
     # Appel de la fonction 3D avec les points Gloutons
-    plot_fronts_3d(archive_unique, archive_fronts, 
+    fig_3d = plot_fronts_3d(archive_unique, archive_fronts, 
                    title="Fronts de Pareto - Archive Globale (GWO vs Greedy)",
-                   greedy_points=greedy_points) # <-- Transmission des points Gloutons
+                   greedy_points=greedy_points)
+    if fig_3d: figures.append(fig_3d)
     
     print(f"✓ Archive affichée avec {len(archive_fronts)} front(s) "
           f"et {len(archive_unique)} solution(s)")
 
     if hv_history:
-        plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
+        fig_hv, _ = plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
+        if fig_hv: figures.append(fig_hv)
 
     if archive_unique:
         objs_arch_final = extract_objectives(archive_unique)
-        plot_pareto_2d(objs_arch_final, x_idx=0, y_idx=1, 
+        fig_2d, _ = plot_pareto_2d(objs_arch_final, x_idx=0, y_idx=1, 
                       x_label="Makespan", y_label="Cost")
+        if fig_2d: figures.append(fig_2d)
+        
+    if metrics_data:
+        # Note: plot_archive_metrics_visualization a été modifié en 1.1
+        fig_metrics = plot_archive_metrics_visualization(metrics_data, archive_unique)
+        if fig_metrics: figures.append(fig_metrics)
+    print(f"✓ {len(figures)} figures générées et affichées simultanément.")
+    plt.show()
+    # return
