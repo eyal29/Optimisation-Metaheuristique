@@ -298,7 +298,11 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     
     for rank, idx in enumerate(top3_indices, 1):
         sol_num = idx + 1
+        solution = archive_solutions[idx]
         recommendation_text += f"#{rank} - Solution {sol_num} (score: {scores[idx]:.3f})\n"
+        recommendation_text += f"   Makespan: {solution.makespan:.2f}\n"
+        recommendation_text += f"   Cost: {solution.cost:.2f}\n"
+        recommendation_text += f"   Energy: {solution.energy:.2f}\n"
         recommendation_text += f"   LBI: {metrics_data['LBI'][idx]:.3f} "
         recommendation_text += f"{'OK' if metrics_data['LBI'][idx] < np.mean(metrics_data['LBI']) else 'X'}\n"
         recommendation_text += f"   FUR: {metrics_data['FUR'][idx]:.3f} "
