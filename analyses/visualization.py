@@ -3,7 +3,7 @@ import mplcursors
 import numpy as np
 
 from algo import generate_fronts
-from metrics import compute_composite_scores, extract_objectives
+from analyses.metrics import compute_composite_scores, extract_objectives
 from utils_to_algo import sol_signature
 
 

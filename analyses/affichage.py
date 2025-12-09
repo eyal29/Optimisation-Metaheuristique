@@ -2,7 +2,7 @@ import time
 from algo import generate_fronts
 from heuristiques.greedy import generate_greedy_solution
 from heuristiques.gwo_simple import solve_gwo_mono
-from metrics import average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
+from analyses.metrics import average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
 from utils_to_algo import sol_signature
 
 

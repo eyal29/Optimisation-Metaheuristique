@@ -3,11 +3,11 @@ import io
 import sys
 import time
 
-from affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders, finalize_and_report
+from analyses.affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders, finalize_and_report
 from algo import check_early_stopping, compute_a, evaluate_solutions, generate_fronts, select_leaders
 from initialization import  initialize_full_algorithm
 from utils_to_algo import gwo_update_population
-from visualization import plot_final_results
+from analyses.visualization import plot_final_results
 
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
