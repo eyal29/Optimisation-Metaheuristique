@@ -77,7 +77,7 @@ def _plot_front(ax, front, front_idx, sol_to_idx, colors, colormaps):
     return sc, tooltips, surf
 
 
-def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
+def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greedy_points=None):
     """Affiche les fronts de Pareto en 3D avec surfaces interpolées et tooltips interactifs.
     
     Args:
@@ -130,7 +130,34 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)"):
             return on_add
         
         cursor.connect("add", make_annotation(tooltips))
-    
+    # AJOUT du tracé des points Gloutons
+    if greedy_points:
+        greedy_xs = [s.makespan for s in greedy_points.values()]
+        greedy_ys = [s.cost for s in greedy_points.values()]
+        greedy_zs = [s.energy for s in greedy_points.values()]
+        
+        # Assurez-vous d'avoir les noms dans le bon ordre pour les tooltips
+        greedy_names = list(greedy_points.keys())
+        
+        sc_g = ax.scatter(greedy_xs, greedy_ys, greedy_zs, 
+                          label="Solutions Gloutonnes",
+                          s=150, marker='D', # Utilisation d'un losange (Diamond)
+                          color='magenta', edgecolor='black', linewidth=1.5, alpha=1.0)
+        
+        # Tooltips pour les points Gloutons
+        greedy_tooltips = []
+        for name, sol in greedy_points.items():
+             tooltip = (f"GREEDY: {name}\n"
+                       f"Makespan: {sol.makespan:.2f}\n"
+                       f"Cost: {sol.cost:.2f}\n"
+                       f"Energy: {sol.energy:.2f}")
+             greedy_tooltips.append(tooltip)
+        
+        # Connecter le curseur aux points Gloutons
+        cursor_g = mplcursors.cursor(sc_g, hover=True)
+        cursor_g.connect("add", make_annotation(greedy_tooltips))
+        
+        all_scatters.append(sc_g)
     # Configuration des axes
     ax.set_xlabel("Makespan", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_ylabel("Cost", fontsize=13, labelpad=15, fontweight='bold')
@@ -293,28 +320,24 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     scores = _compute_composite_scores(metrics_data, n_solutions)
     top3_indices = np.argsort(scores)[-3:][::-1]
     
-    recommendation_text = "RECOMMANDATIONS\n" + "="*50 + "\n\n"
-    recommendation_text += "TOP 3 SOLUTIONS (score composite):\n\n"
+    recommendation_text = "RECOMMANDATIONS\n" + "="*50 + "\n"
+    recommendation_text += "TOP 3 SOLUTIONS (score composite):\n"
     
     for rank, idx in enumerate(top3_indices, 1):
         sol_num = idx + 1
-        solution = archive_solutions[idx]
+        # solution = archive_solutions[idx]
         recommendation_text += f"#{rank} - Solution {sol_num} (score: {scores[idx]:.3f})\n"
-        recommendation_text += f"   Makespan: {solution.makespan:.2f}\n"
-        recommendation_text += f"   Cost: {solution.cost:.2f}\n"
-        recommendation_text += f"   Energy: {solution.energy:.2f}\n"
+        # recommendation_text += f"   Makespan: {solution.makespan:.2f}\n"
+        # recommendation_text += f"   Cost: {solution.cost:.2f}\n"
+        # recommendation_text += f"   Energy: {solution.energy:.2f}\n"
         recommendation_text += f"   LBI: {metrics_data['LBI'][idx]:.3f} "
-        recommendation_text += f"{'OK' if metrics_data['LBI'][idx] < np.mean(metrics_data['LBI']) else 'X'}\n"
+        recommendation_text += f"\n"
         recommendation_text += f"   FUR: {metrics_data['FUR'][idx]:.3f} "
-        recommendation_text += f"{'OK' if metrics_data['FUR'][idx] > np.mean(metrics_data['FUR']) else 'X'}\n"
+        recommendation_text += f"\n"
         recommendation_text += f"   EE: {metrics_data['EE'][idx]:.1f} "
-        recommendation_text += f"{'OK' if metrics_data['EE'][idx] > np.mean(metrics_data['EE']) else 'X'}\n"
+        recommendation_text += f"\n"
         recommendation_text += f"   Latency: {metrics_data['AvgLatency'][idx]:.3f} "
-        recommendation_text += f"{'OK' if metrics_data['AvgLatency'][idx] < np.mean(metrics_data['AvgLatency']) else 'X'}\n\n"
-    
-    recommendation_text += "\nINTERPRETATION:\n"
-    recommendation_text += "OK = Au-dessus de la moyenne (bon)\n"
-    recommendation_text += "X  = En-dessous de la moyenne\n"
+        recommendation_text += f"\n\n"
     
     ax5.text(0.05, 0.95, recommendation_text, transform=ax5.transAxes, 
              fontsize=10, verticalalignment='top', family='monospace',
@@ -348,23 +371,28 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
 
 #anciennement dans utils_main.py:
 
-def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None):
+def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, greedy_points=None):
     """
     Génère tous les graphiques finaux avec affichage de l'archive complète.
     
     Args:
-        archive_unique: Solutions uniques de l'archive
+        archive_unique: Solutions uniques de l'archive (Front de Pareto final)
         hv_history: Historique de l'hypervolume
         donnees: Données du problème
         valid_solutions: Solutions valides (optionnel)
+        greedy_points: Dictionnaire des solutions gloutonnes à superposer (AJOUTÉ)
     """
     print("\n" + "="*70)
     print("AFFICHAGE DE L'ARCHIVE GLOBALE (TOUS LES FRONTS)")
     print("="*70)
     
     archive_fronts = generate_fronts(archive_unique)
+    
+    # Appel de la fonction 3D avec les points Gloutons
     plot_fronts_3d(archive_unique, archive_fronts, 
-                   title="Fronts de Pareto - Archive Globale (Tous les Fronts)")
+                   title="Fronts de Pareto - Archive Globale (GWO vs Greedy)",
+                   greedy_points=greedy_points) # <-- Transmission des points Gloutons
+    
     print(f"✓ Archive affichée avec {len(archive_fronts)} front(s) "
           f"et {len(archive_unique)} solution(s)")
 
@@ -375,4 +403,3 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
         objs_arch_final = extract_objectives(archive_unique)
         plot_pareto_2d(objs_arch_final, x_idx=0, y_idx=1, 
                       x_label="Makespan", y_label="Cost")
-

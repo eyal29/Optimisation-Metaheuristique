@@ -1,7 +1,6 @@
 import copy
 import numpy as np
 from utils_to_algo import assign_crowding_distance, crowding_distance, Solution, dominates, gwo_update_population, sol_signature
-# from utils_main import print_solution_info
 
 
 def generate_valid_solution(donnees):
