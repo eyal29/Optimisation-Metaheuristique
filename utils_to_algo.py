@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 class Donnees:
-    #pour recuperer les donnees des datasets et calculer la matrice Uij
     def __init__(self, videos: pd.DataFrame, vms: pd.DataFrame):
         # Vidéos
         self.n = len(videos)
@@ -18,10 +17,7 @@ class Donnees:
                 "Elle est nécessaire pour calculer FUR."
             )
 
-        # Nettoyage du format (au cas où)
         type_col = vms["type"].astype(str).str.strip().str.lower()
-
-        # Bool : True si Fog, False sinon
         self.is_fog_j = type_col.eq("fog").values
 
         # VMs
@@ -37,7 +33,6 @@ class Donnees:
         self.U_ij = self.compute_Uij()
 
     def compute_Uij(self) -> np.ndarray:
-   
         U_ij = np.zeros((self.n, self.p), dtype=float)
         c = 300000 
 
@@ -54,31 +49,31 @@ class Donnees:
 class Solution:
     def __init__(self, assignment, donnees: Donnees):
     
-        self.assignment = assignment  # Affectation des vidéos aux VMs
-        self.donnees = donnees        # L'instance du problème
+        self.assignment = assignment  
+        self.donnees = donnees        
         self.makespan = None
         self.cost = None
         self.energy = None
 
     def evaluate(self):
-        n, p = self.donnees.n, self.donnees.p  # n = nombre de vidéos, p = nombre de VMs
-        U_ij = self.donnees.U_ij  # Matrice des temps d'exécution entre vidéos et VMs
+        n, p = self.donnees.n, self.donnees.p 
+        U_ij = self.donnees.U_ij  
 
         # 1. Calcul du makespan (temps de traitement total)
-        load = np.zeros(p, dtype=float)  # Charge par machine virtuelle
+        load = np.zeros(p, dtype=float) 
         for i in range(n):
-            vm = self.assignment[i]  # VM à laquelle la vidéo i est assignée
-            load[vm] += U_ij[i, vm]  # Charge totale pour cette VM
-        # Le makespan est la machine ayant la charge maximale
-        self.makespan = load.max()
+            vm = self.assignment[i]  
+            load[vm] += U_ij[i, vm]  
+        self.makespan = load.max()          # Le makespan est la machine ayant la charge maximale
+
 
         # 2. Calcul du coût
         total_cost = 0.0
         for i in range(n):
-            j = self.assignment[i]  # VM assignée à la vidéo i
+            j = self.assignment[i]  
             U = U_ij[i, j]
-            m = self.donnees.m_i[i]  # Mémoire utilisée par la vidéo i
-            q = self.donnees.q_i[i]  # Taille des données entrantes de la vidéo i
+            m = self.donnees.m_i[i] 
+            q = self.donnees.q_i[i]  
             lambda_j = self.donnees.lambda_j[j]
             beta_j = self.donnees.beta_j[j]
             gamma_j = self.donnees.gamma_j[j]
@@ -88,11 +83,11 @@ class Solution:
         # 3. Calcul de l'énergie
         total_energy = 0
         for j in range(p):
-            total_energy += load[j] * self.donnees.energy_j[j]  # Charge par VM * énergie de la VM
+            total_energy += load[j] * self.donnees.energy_j[j]  
 
         self.energy = total_energy
 
-# FONCTIONS DE DOMINANCE ET SIGNATURE
+# FONCTIONS DE DOMINANCE ET DE CROWDING DISTANCE
 def sol_signature(sol):
     return (round(sol.makespan, 4), round(sol.cost, 4), round(sol.energy, 4))
 
@@ -105,18 +100,6 @@ def dominates(a, b):
     )
 
 def crowding_distance(front_objs: np.ndarray) -> np.ndarray:
-    """
-    Compute crowding distance for a single Pareto front.
-    
-    Parameters
-    ----------
-    front_objs : np.ndarray
-        Objective values for solutions in one front, shape (N, M)
-    
-    Returns
-    -------
-    distances : np.ndarray of shape (N,)
-    """
     N, M = front_objs.shape
     distances = np.zeros(N, dtype=float)
 
@@ -152,15 +135,10 @@ def assign_crowding_distance(population, pareto_fronts):
     """
     Calcule la crowding-distance pour toute la population,
     en appliquant crowding_distance() front par front.
-
-    population : liste d'objets Solution
-    pareto_fronts : liste de listes d’indices (F1, F2, F3…)
     """
-
     N = len(population)
     crowding = np.zeros(N)
 
-    # On extrait les objectifs dans une matrice (N, M)
     objs = np.array([
         [sol.makespan, sol.cost, sol.energy]
         for sol in population
@@ -170,13 +148,8 @@ def assign_crowding_distance(population, pareto_fronts):
         if len(front) == 0:
             continue
 
-        # extraire les valeurs objectives du front
         front_objs = objs[front]
-
-        # calculer la distance pour ce front
         cd = crowding_distance(front_objs)
-
-        # remettre les valeurs au bon endroit
         for i, idx in enumerate(front):
             crowding[idx] = cd[i]
 
@@ -252,15 +225,6 @@ def gwo_update_population(population, alpha, beta, delta, donnees, a):
 def repair_assignment(assignment, donnees):
     """
     Répare une affectation qui pourrait violer les capacités mémoire des VMs.
-
-    - assignment : vecteur des VMs pour chaque vidéo (taille n)
-    - donnees    : objet Donnees (contient m_i, memory_capacity, U_ij, n, p)
-
-    Principe :
-      1) on calcule la mémoire utilisée par VM
-      2) pour chaque VM qui dépasse sa capacité :
-         - on déplace certaines vidéos vers des VMs qui ont encore de la place
-         - on choisit la VM cible qui donne le plus petit U_ij (temps le plus faible)
     """
     assignment = assignment.copy().astype(int)
     n, p = donnees.n, donnees.p
@@ -276,14 +240,11 @@ def repair_assignment(assignment, donnees):
 
     # 2. Pour chaque VM qui dépasse sa capacité → on tente de déplacer des vidéos
     for vm in range(p):
-        # Tant que cette VM est surchargée
         while memory_used[vm] > capacity[vm]:
-            # vidéos actuellement sur cette VM
             videos_on_vm = [i for i in range(n) if assignment[i] == vm]
             if not videos_on_vm:
-                break  # plus rien à déplacer
+                break  
 
-            # On essaye de déplacer d'abord les vidéos les plus "lourdes" en mémoire
             videos_on_vm.sort(key=lambda i: m_i[i], reverse=True)
 
             moved = False
@@ -304,11 +265,9 @@ def repair_assignment(assignment, donnees):
                 memory_used[vm]      -= m_i[i]
                 memory_used[best_vm] += m_i[i]
                 moved = True
-                break  # on re-vérifie la surcharge de la VM
+                break  
 
             if not moved:
-                # Impossible de corriger plus cette VM (pas de place ailleurs)
-                # On sort de la boucle pour éviter une boucle infinie
                 break
 
     return assignment

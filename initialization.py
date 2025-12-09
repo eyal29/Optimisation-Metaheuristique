@@ -17,7 +17,6 @@ def load_data(videos_path: str,vms_path: str,) -> Tuple[pd.DataFrame, pd.DataFra
 
 def initialize_full_algorithm(config_path: str = "config.yaml"):
     """
-    Orchestre l'initialisation complète de l'algorithme GWO-NSGA-II : 
     chargement des données, création de la population initiale, et configuration 
     des objets de suivi et d'archive.
     """
@@ -38,7 +37,7 @@ def initialize_full_algorithm(config_path: str = "config.yaml"):
     valid_solutions = [generate_valid_solution(donnees) for _ in range(POP_SIZE)]
     archive = ParetoArchive(max_size=ARCHIVE_MAX)
     
-    # 4. Paramètres d'arrêt précoce/historique
+    # 4. Paramètres du early stopping
     hv_history = None
     ref_point = None
     iterations_without_improvement = 0

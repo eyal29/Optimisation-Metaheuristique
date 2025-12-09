@@ -1,43 +1,31 @@
 import numpy as np
-from utils_to_algo import Solution # Importez la classe Solution
+from utils_to_algo import Solution 
 
 def generate_greedy_solution(donnees, greedy_mode='makespan'):
     """
     Génère une solution gloutonne mono-objectif tout en respectant la contrainte mémoire.
-    
-    Args:
-        donnees: L'objet Donnees contenant les données du problème.
-        greedy_mode: La stratégie à suivre ('makespan', 'cost', ou 'energy').
-        
-    Returns:
-        Solution: L'objet Solution évalué.
     """
     assignment = np.zeros(donnees.n, dtype=int)
     memory_used = np.zeros(donnees.p, dtype=float)
     
-    # 1. Définir la fonction de coût glouton (à minimiser)
     def compute_local_cost(i, j):
         U = donnees.U_ij[i, j]
         m = donnees.m_i[i]
         q = donnees.q_i[i]
         
         if greedy_mode == 'makespan':
-            return U # Minimise le temps de traitement de la tâche
+            return U
         elif greedy_mode == 'cost':
-            # Minimise le coût total pour cette tâche
             return (donnees.lambda_j[j] * U + donnees.beta_j[j] * m + donnees.gamma_j[j] * q)
         elif greedy_mode == 'energy':
-            # Minimise l'énergie pour cette tâche
             return U * donnees.energy_j[j]
         return np.inf
 
-    # 2. Affecter chaque vidéo (tâche) séquentiellement
     for i in range(donnees.n):
         best_vm = -1
         min_cost = np.inf
         
         for j in range(donnees.p):
-            # Vérification de la contrainte mémoire
             if memory_used[j] + donnees.m_i[i] <= donnees.memory_capacity[j]:
                 current_cost = compute_local_cost(i, j)
                 
@@ -45,12 +33,10 @@ def generate_greedy_solution(donnees, greedy_mode='makespan'):
                     min_cost = current_cost
                     best_vm = j
         
-        # 3. Affectation et mise à jour
         if best_vm != -1:
             assignment[i] = best_vm
             memory_used[best_vm] += donnees.m_i[i]
         else:
-            # Gérer le cas où aucune VM n'a de place (laisse l'affectation telle quelle)
             pass 
             
     solution = Solution(assignment.astype(int), donnees)

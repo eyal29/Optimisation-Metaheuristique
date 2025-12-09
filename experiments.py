@@ -247,7 +247,6 @@ def run_experiments():
     plt.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
 
-    # Affiche toutes les figures dans des fenêtres séparées
     plt.show()
 
 

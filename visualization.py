@@ -1,15 +1,9 @@
-
-
-#anciennement dans pareto.py:
-
-
-# VISUALISATION 3D DES FRONTS
 from matplotlib import pyplot as plt
 import mplcursors
 import numpy as np
 
 from algo import generate_fronts
-from metrics import _compute_composite_scores, compute_metrics_all_solutions, extract_objectives
+from metrics import compute_composite_scores, extract_objectives
 from utils_to_algo import sol_signature
 
 
@@ -19,7 +13,6 @@ def _add_jitter_if_needed(xs, ys, zs):
     if unique_pts >= len(xs):
         return xs, ys, zs
     
-    # Calculer échelle de jitter proportionnelle à l'étendue
     range_x = max(xs) - min(xs) if max(xs) != min(xs) else 1.0
     range_y = max(ys) - min(ys) if max(ys) != min(ys) else 1.0
     range_z = max(zs) - min(zs) if max(zs) != min(zs) else 1.0
@@ -33,7 +26,6 @@ def _add_jitter_if_needed(xs, ys, zs):
 
 
 def _create_tooltips(front, front_idx, sol_to_idx):
-    """Crée les tooltips pour les solutions d'un front."""
     tooltips = []
     for solution in front:
         sol_num = sol_to_idx.get(sol_signature(solution), "?")
@@ -46,7 +38,6 @@ def _create_tooltips(front, front_idx, sol_to_idx):
 
 
 def _plot_front(ax, front, front_idx, sol_to_idx, colors, colormaps):
-    """Trace un front de Pareto en 3D avec surface et points."""
     xs = [s.makespan for s in front]
     ys = [s.cost for s in front]
     zs = [s.energy for s in front]
@@ -78,32 +69,21 @@ def _plot_front(ax, front, front_idx, sol_to_idx, colors, colormaps):
 
 
 def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greedy_points=None):
-    """Affiche les fronts de Pareto en 3D avec surfaces interpolées et tooltips interactifs.
-    
-    Args:
-        valid_solutions: Liste complète des solutions
-        fronts: Liste des fronts de Pareto
-        title: Titre du graphique
-    """
     fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection='3d')
     
-    # Palettes de couleurs
     colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "brown", "pink", "olive"]
     colormaps = ['plasma', 'viridis', 'hot', 'cool', 'spring', 'summer', 'autumn', 'winter']
     
-    # Configuration visuelle
     ax.set_facecolor("white")
     ax.grid(True, linestyle='--', linewidth=0.3, alpha=0.5)
     
-    # Mapping solution -> index
     sol_to_idx = {sol_signature(sol): idx + 1 for idx, sol in enumerate(valid_solutions)}
     
     all_scatters = []
     all_tooltips = []
     surf_handles = []
     
-    # Tracer chaque front
     for i, front in enumerate(fronts, 1):
         if not front:
             continue
@@ -114,7 +94,6 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
         if surf:
             surf_handles.append(surf)
     
-    # Ajouter curseurs interactifs
     for sc, tooltips in zip(all_scatters, all_tooltips):
         cursor = mplcursors.cursor(sc, hover=True)
         
@@ -130,21 +109,19 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
             return on_add
         
         cursor.connect("add", make_annotation(tooltips))
-    # AJOUT du tracé des points Gloutons
+
     if greedy_points:
         greedy_xs = [s.makespan for s in greedy_points.values()]
         greedy_ys = [s.cost for s in greedy_points.values()]
         greedy_zs = [s.energy for s in greedy_points.values()]
         
-        # Assurez-vous d'avoir les noms dans le bon ordre pour les tooltips
         greedy_names = list(greedy_points.keys())
         
         sc_g = ax.scatter(greedy_xs, greedy_ys, greedy_zs, 
-                          label="Solutions Gloutonnes",
-                          s=150, marker='D', # Utilisation d'un losange (Diamond)
+                          label="Solutions adverses",
+                          s=150, marker='D', 
                           color='magenta', edgecolor='black', linewidth=1.5, alpha=1.0)
         
-        # Tooltips pour les points Gloutons
         greedy_tooltips = []
         for name, sol in greedy_points.items():
              tooltip = (f"ALGO: {name}\n"
@@ -153,12 +130,10 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
                        f"Energy: {sol.energy:.2f}")
              greedy_tooltips.append(tooltip)
         
-        # Connecter le curseur aux points Gloutons
         cursor_g = mplcursors.cursor(sc_g, hover=True)
         cursor_g.connect("add", make_annotation(greedy_tooltips))
         
         all_scatters.append(sc_g)
-    # Configuration des axes
     ax.set_xlabel("Makespan", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_ylabel("Cost", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_zlabel("Energy", fontsize=13, labelpad=15, fontweight='bold')
@@ -172,21 +147,15 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
         plt.colorbar(surf_handles[0], shrink=0.6, aspect=12, pad=0.08, label='Energy (surface)')
     
     plt.tight_layout()
-    # plt.show()
     return fig
 
 
-
-
-#anciennement dans metrics.py:
-
 def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
-    """Trace la courbe de convergence de l'hypervolume au fil des itérations."""
     if not hv_history:
         print("hv_history est vide, rien à tracer.")
-        return None, None # Retourne None, None si rien à tracer
+        return None, None 
 
-    fig = plt.figure(figsize=(8, 5)) # <-- Utiliser fig = plt.figure() pour retourner l'objet Figure
+    fig = plt.figure(figsize=(8, 5)) 
     ax = fig.add_subplot(111)
     
     ax.plot(range(len(hv_history)), hv_history, marker="o")
@@ -195,9 +164,7 @@ def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
     ax.set_title(title, fontsize=14)
     ax.grid(True, linestyle="--", alpha=0.5)
     fig.tight_layout()
-    # plt.show() <-- SUPPRIMÉ
-    
-    return fig, ax # <-- Retourne la Figure et les Axes
+    return fig, ax 
 
 def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     """
@@ -206,13 +173,13 @@ def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     """
     if objs is None or len(objs) == 0:
         print("objs est vide, rien à tracer.")
-        return None, None # Retourne None, None si rien à tracer
+        return None, None 
 
     x = objs[:, x_idx]
     y = objs[:, y_idx]
     energy = objs[:, 2]
 
-    fig = plt.figure(figsize=(7, 6)) # <-- Utiliser fig = plt.figure() pour retourner l'objet Figure
+    fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111)
     
     sc = ax.scatter(x, y, c=energy, s=70, edgecolor="black", alpha=0.85)
@@ -222,22 +189,12 @@ def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label("Energy", fontsize=11)
     ax.grid(True, linestyle="--", alpha=0.4)
-    fig.tight_layout()
-    # plt.show() <-- SUPPRIMÉ
-    
-    return fig, ax # <-- Retourne la Figure et les Axes
+    fig.tight_layout()    
+    return fig, ax
 
-#anciennement dans metrics.py graph pour l'archive:
 def _create_metric_subplot(ax, solution_indices, values, metric_name, config):
     """
     Fonction auxiliaire pour créer un sous-graphique de métrique.
-    
-    Args:
-        ax: axes matplotlib
-        solution_indices: indices des solutions
-        values: valeurs de la métrique
-        metric_name: nom de la métrique
-        config: dict avec 'color', 'edgecolor', 'title', 'ylabel', 'better', 'best_func'
     """
     ax.bar(solution_indices, values, color=config['color'], 
            alpha=0.7, edgecolor=config['edgecolor'])
@@ -270,10 +227,6 @@ def _create_metric_subplot(ax, solution_indices, values, metric_name, config):
 def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     """
     Affiche les métriques de toutes les solutions de l'archive sous forme de graphiques.
-    
-    Args:
-        metrics_data: dict contenant 'LBI', 'FUR', 'EE', 'AvgLatency'
-        archive_solutions: liste des solutions de l'archive
     """
     if not metrics_data['LBI']:
         print("Aucune métrique à afficher.")
@@ -284,7 +237,6 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     
     fig = plt.figure(figsize=(18, 10))
     
-    # Configuration des métriques
     metrics_config = {
         'LBI': {
             'color': 'steelblue', 'edgecolor': 'navy',
@@ -312,7 +264,6 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
         }
     }
     
-    # Créer les 4 graphiques de métriques
     for idx, (metric_name, config) in enumerate(metrics_config.items(), 1):
         ax = plt.subplot(2, 3, idx)
         _create_metric_subplot(ax, solution_indices, metrics_data[metric_name], 
@@ -322,7 +273,7 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     ax5 = plt.subplot(2, 3, 5)
     ax5.axis('off')
     
-    scores = _compute_composite_scores(metrics_data, n_solutions)
+    scores = compute_composite_scores(metrics_data, n_solutions)
     top3_indices = np.argsort(scores)[-3:][::-1]
     
     recommendation_text = "RECOMMANDATIONS\n" + "="*50 + "\n"
@@ -372,22 +323,10 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
                  fontsize=16, fontweight='bold', y=0.995)
     
     plt.tight_layout()
-    # plt.show()
     return fig
 
-#anciennement dans utils_main.py:
 
 def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, reference_solutions=None, metrics_data=None):
-    """
-    Génère tous les graphiques finaux avec affichage de l'archive complète.
-    
-    Args:
-        archive_unique: Solutions uniques de l'archive (Front de Pareto final)
-        hv_history: Historique de l'hypervolume
-        donnees: Données du problème
-        valid_solutions: Solutions valides (optionnel)
-        greedy_points: Dictionnaire des solutions gloutonnes à superposer (AJOUTÉ)
-    """
     print("\n" + "="*70)
     print("AFFICHAGE DE L'ARCHIVE GLOBALE (TOUS LES FRONTS)")
     print("="*70)
@@ -429,12 +368,9 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
         
     # 5. Plot Métriques d'Archive
     if metrics_data:
-        # Note: plot_archive_metrics_visualization a été modifié en 1.1
         fig_metrics = plot_archive_metrics_visualization(metrics_data, archive_unique)
         if fig_metrics: figures.append(fig_metrics)
         
     print(f"✓ {len(figures)} figures générées et affichées simultanément.")
     
-    # AFFICHAGE SIMULTANÉ DE TOUTES LES FIGURES
     plt.show()
-    # return

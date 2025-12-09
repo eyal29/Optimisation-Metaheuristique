@@ -1,21 +1,13 @@
-"""
-Module de métriques pour l'optimisation multi-objectifs.
-Contient les calculs de métriques de performance et de visualisation.
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 # MÉTRIQUES DE BASE ET HYPERVOLUME
-
 def extract_objectives(solutions):
-    """Transforme une liste de Solution en matrice (N,3): [makespan, cost, energy]."""
     return np.array([[s.makespan, s.cost, s.energy] for s in solutions], dtype=float)
 
 
 def compute_reference_point(objs, factor=1.1):
-    """Définit un point de référence un peu pire que le max des objectifs."""
     return objs.max(axis=0) * factor
 
 
@@ -24,13 +16,6 @@ def hypervolume_3d(objs, ref_point):
     Calcule l'hypervolume 3D (minimisation) approximatif.
     Plus HV est large, plus l'ensemble de solutions est proche du coin idéal
     et bien étendu dans l'espace.
-    
-    Args:
-        objs: array (N,3) - [makespan, cost, energy]
-        ref_point: array-like (3,) - point de référence
-    
-    Returns:
-        float: valeur de l'hypervolume
     """
     idx = np.argsort(objs[:, 0])
     sorted_objs = objs[idx]
@@ -59,7 +44,6 @@ def hypervolume_3d(objs, ref_point):
 
 
 def init_hv_tracking(initial_archive):
-    """Initialise le suivi d'hypervolume. Retourne (hv_history, ref_point)."""
     objs = extract_objectives(initial_archive)
     ref_point = compute_reference_point(objs, factor=1.1)
     hv0 = hypervolume_3d(objs, ref_point)
@@ -67,14 +51,13 @@ def init_hv_tracking(initial_archive):
 
 
 def update_hv_tracking(archive_solutions, hv_history, ref_point):
-    """Met à jour l'historique d'hypervolume à une itération donnée."""
     objs = extract_objectives(archive_solutions)
     hv = hypervolume_3d(objs, ref_point)
     hv_history.append(hv)
     return hv_history
 
-# MÉTRIQUES DE QUALITÉ DES SOLUTIONS
 
+# MÉTRIQUES DE QUALITÉ DES SOLUTIONS
 def load_balancing_index(solution, donnees):
     """
     Load Balancing Index: LBI = std(load_j) / mean(load_j).
@@ -121,6 +104,8 @@ def average_latency(solution, donnees):
                         for i in range(donnees.n))
     return total_latency / donnees.n
 
+
+
 # MÉTRIQUES DE DIVERSITÉ ET QUALITÉ PARETO
 def diversity_spread(objs):
     """
@@ -165,21 +150,9 @@ def spacing_metric(objs):
     distances = np.array(distances)
     return distances.std()
 
-# VISUALISATIONS
-
 
 # CALCUL ET VISUALISATION DES MÉTRIQUES POUR L'ARCHIVE
 def compute_metrics_all_solutions(archive_solutions, donnees):
-    """
-    Calcule et affiche les métriques pour toutes les solutions de l'archive.
-    
-    Args:
-        archive_solutions: liste des solutions de l'archive
-        donnees: données du problème
-        
-    Returns:
-        dict: dictionnaire contenant les listes de métriques pour toutes les solutions
-    """
     print("\n" + "="*70)
     print("MÉTRIQUES FINALES - TOUTES LES SOLUTIONS DE L'ARCHIVE")
     print("="*70)
@@ -212,8 +185,7 @@ def compute_metrics_all_solutions(archive_solutions, donnees):
     return metrics_data
 
 
-def _compute_composite_scores(metrics_data, n_solutions):
-    """Calcule les scores composites normalisés pour les solutions."""
+def compute_composite_scores(metrics_data, n_solutions):
     scores = []
     
     for i in range(n_solutions):
