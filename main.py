@@ -6,10 +6,10 @@ import sys
 import time
 
 from affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders
-from algo import ParetoArchive, check_early_stopping, compute_a, generate_fronts, generate_valid_solution, select_leaders
+from algo import ParetoArchive, check_early_stopping, compute_a, evaluate_and_filter_solutions, generate_fronts, select_leaders
 from metrics import compute_metrics_all_solutions
 from initialization import initialize_algorithm
-from utils_to_algo import Donnees, check_lmax_constraint, gwo_update_population
+from utils_to_algo import gwo_update_population
 from visualization import plot_archive_metrics_visualization, plot_final_results
 
 
@@ -57,32 +57,7 @@ def main():
         print(f"a = {a:.4f}")
 
         # Évaluation + filtrage par contrainte Lmax
-        # Évaluation et filtrage des solutions par contrainte Lmax
-        evaluated_solutions = []
-        rejected_count = 0
-        
-        for idx, solution in enumerate(valid_solutions, 1):
-            solution.evaluate()
-            lmax_valid, lmax_info = check_lmax_constraint(solution, donnees)
-            solution.lmax_valid = lmax_valid
-            solution.lmax_info = lmax_info
-            
-            # Afficher les infos de la solution comme avant
-            if lmax_valid:
-                evaluated_solutions.append(solution)
-            else:
-                print(" Solution rejetée (ne respecte pas Lmax)")
-                rejected_count += 1
-        
-        # Si aucune solution valide, générer de nouvelles solutions
-        if not evaluated_solutions:
-            print("ATTENTION: Aucune solution ne respecte Lmax! Génération de nouvelles solutions.")
-            evaluated_solutions = [generate_valid_solution(donnees) for _ in range(len(valid_solutions))]
-            for sol in evaluated_solutions:
-                sol.evaluate()
-        
-        print(f"\nSolutions acceptées: {len(evaluated_solutions)}/{POP_SIZE}, "
-              f"rejetées: {POP_SIZE - len(evaluated_solutions)}")
+        evaluated_solutions = evaluate_and_filter_solutions(valid_solutions, donnees, POP_SIZE)
 
         # Fronts de la population actuelle
         fronts = generate_fronts(evaluated_solutions)
