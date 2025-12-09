@@ -2,9 +2,12 @@
 # AFFICHAGE DES SOLUTIONS
 # =============================================================================
 
+import time
 from algo import generate_fronts
-from metrics import average_latency, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
+from greedy import generate_greedy_solution
+from metrics import average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
 from utils_to_algo import sol_signature
+from visualization import plot_archive_metrics_visualization, plot_final_results
 
 
 def print_solution_info(solution, idx,):
@@ -154,3 +157,59 @@ def compute_and_display_archive_solutions_metrics(archive_solutions, donnees):
     else:
         print("Aucune solution dans l'archive")
 
+
+def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time):
+    """
+    Gère l'exécution des Greedys, l'affichage final, le calcul des métriques et les visualisations.
+    """
+    # Nettoyage de l'archive
+    archive_unique = archive.get_solutions()
+    
+    # =========================================================================
+    # 🎯 ÉTAPE DE COMPARAISON AVEC L'ALGORITHME GREEDY (CALCUL & AFFICHAGE CONSOLE)
+    # =========================================================================
+    print("\n" + "="*70)
+    print("COMPARAISON GWO-NSGA-II vs. ALGORITHMES GLOUTONS")
+    print("="*70)
+    
+    # Exécution des stratégies Gloutonnes
+    print("\n[Glouton] Génération des 3 solutions mono-objectives...")
+    
+    sol_greedy_m = generate_greedy_solution(donnees, greedy_mode='makespan')
+    sol_greedy_c = generate_greedy_solution(donnees, greedy_mode='cost')
+    sol_greedy_e = generate_greedy_solution(donnees, greedy_mode='energy')
+
+    # Stocker les solutions Greedy avec un nom descriptif
+    greedy_solutions = {
+        'Greedy-Makespan': sol_greedy_m,
+        'Greedy-Cost': sol_greedy_c,
+        'Greedy-Energy': sol_greedy_e
+    }
+    
+    # Affichage des solutions Gloutonnes
+    print("\n--- SOLUTIONS GLOUTONNES ---")
+    for name, sol in greedy_solutions.items():
+        print(f"[{name}] Makespan={sol.makespan:.4f}, Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
+
+    # =========================================================================
+    # 📈 ÉTAPE DE RAPPORT FINAL (AFFICHAGE ET VISUALISATION)
+    # =========================================================================
+    
+    # Affichage détaillé et résumé
+    print("\n\n===== DÉTAILS DES SOLUTIONS FINALES DE L'ARCHIVE =====")
+    for idx, solution in enumerate(archive_unique, 1):
+        print_solution_info(solution, idx)
+    
+    display_archive(archive_unique, show_summary=True, valid_solutions=valid_solutions, donnees=donnees)
+    
+    # Calcul des métriques pour TOUTES les solutions de l'archive et visualisation
+    metrics_data = compute_metrics_all_solutions(archive_unique, donnees)
+    plot_archive_metrics_visualization(metrics_data, archive_unique)
+
+    # Affichage du temps d'exécution
+    end_time = time.time()
+    exec_time = end_time - start_time
+    print(f"\nTemps d'exécution total : {exec_time:.2f} secondes")
+
+    # Affichage graphique (Visualisation)
+    plot_final_results(archive_unique, hv_history, donnees, valid_solutions, greedy_points=greedy_solutions)

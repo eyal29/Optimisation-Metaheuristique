@@ -2,7 +2,7 @@ from typing import Tuple
 import pandas as pd
 import yaml
 
-from algo import generate_valid_solution
+from algo import ParetoArchive, generate_valid_solution
 from utils_to_algo import Donnees
 
 def load_config(path: str = "config.yaml") -> dict:
@@ -15,26 +15,33 @@ def load_data(videos_path: str,vms_path: str,) -> Tuple[pd.DataFrame, pd.DataFra
     df2 = pd.read_csv(vms_path, sep=';', encoding='latin-1')  #chargement dataset vm
     return df1, df2
 
-def initialize_algorithm(config_path: str = "config.yaml"):
+def initialize_full_algorithm(config_path: str = "config.yaml"):
     """
-    Initialisation de l'algorithme GWO : chargement des configurations et des données.
-    
-    Retourne :
-        - donnees : Objet contenant les données du problème
-        - config : Configuration lue depuis le fichier
+    Orchestre l'initialisation complète de l'algorithme GWO-NSGA-II : 
+    chargement des données, création de la population initiale, et configuration 
+    des objets de suivi et d'archive.
     """
-    # Chargement de la configuration
+    # 1. Chargement de la configuration
     config = load_config(config_path)
     
-    # Chargement des données
+    # 2. Chargement des données
     videos_path = config["paths"]["videos"]
     vms_path = config["paths"]["vms"]
     videos, vms = load_data(videos_path, vms_path)
     
     donnees = Donnees(videos, vms)
 
-    # Initialisation de la population
+    # 3. Initialisation de la population et de l'Archive
     POP_SIZE = config["gwo"]["population_size"]
+    ARCHIVE_MAX = config["gwo"]["max_archive_size"]
+    
     valid_solutions = [generate_valid_solution(donnees) for _ in range(POP_SIZE)]
+    archive = ParetoArchive(max_size=ARCHIVE_MAX)
+    
+    # 4. Paramètres d'arrêt précoce/historique
+    hv_history = None
+    ref_point = None
+    iterations_without_improvement = 0
+    prev_hv = None
 
-    return donnees, config, valid_solutions
+    return donnees, config, valid_solutions, archive, hv_history, ref_point, iterations_without_improvement, prev_hv
