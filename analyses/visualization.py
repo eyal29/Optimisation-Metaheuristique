@@ -111,29 +111,73 @@ def plot_fronts_3d(valid_solutions, fronts, title="Fronts de Pareto (3D)", greed
         cursor.connect("add", make_annotation(tooltips))
 
     if greedy_points:
-        greedy_xs = [s.makespan for s in greedy_points.values()]
-        greedy_ys = [s.cost for s in greedy_points.values()]
-        greedy_zs = [s.energy for s in greedy_points.values()]
         
-        greedy_names = list(greedy_points.keys())
+        single_points_xs = []
+        single_points_ys = []
+        single_points_zs = []
+        single_points_names = []
         
-        sc_g = ax.scatter(greedy_xs, greedy_ys, greedy_zs, 
-                          label="Solutions adverses",
-                          s=150, marker='D', 
-                          color='magenta', edgecolor='black', linewidth=1.5, alpha=1.0)
+        nsga2_front_xs = []
+        nsga2_front_ys = []
+        nsga2_front_zs = []
+        nsga2_front_tooltips = []
         
-        greedy_tooltips = []
-        for name, sol in greedy_points.items():
-             tooltip = (f"ALGO: {name}\n"
-                       f"Makespan: {sol.makespan:.2f}\n"
-                       f"Cost: {sol.cost:.2f}\n"
-                       f"Energy: {sol.energy:.2f}")
-             greedy_tooltips.append(tooltip)
-        
-        cursor_g = mplcursors.cursor(sc_g, hover=True)
-        cursor_g.connect("add", make_annotation(greedy_tooltips))
-        
-        all_scatters.append(sc_g)
+        for name, sol_or_list in greedy_points.items():
+            if isinstance(sol_or_list, list):
+                # Ceci est le Front NSGA-II Simple (liste de solutions)
+                for sol in sol_or_list:
+                    nsga2_front_xs.append(sol.makespan)
+                    nsga2_front_ys.append(sol.cost)
+                    nsga2_front_zs.append(sol.energy)
+                    tooltip = (f"ALGO: {name}\n"
+                              f"Makespan: {sol.makespan:.2f}\n"
+                              f"Cost: {sol.cost:.2f}\n"
+                              f"Energy: {sol.energy:.2f}")
+                    nsga2_front_tooltips.append(tooltip)
+            else:
+                # Solution unique (Greedy ou GWO Mono)
+                single_points_xs.append(sol_or_list.makespan)
+                single_points_ys.append(sol_or_list.cost)
+                single_points_zs.append(sol_or_list.energy)
+                single_points_names.append(name)
+                
+        # 💡 TRACÉ DU FRONT NSGA-II (Points 'D', sans surface, couleur distincte)
+        if nsga2_front_xs:
+            sc_nsga2 = ax.scatter(nsga2_front_xs, nsga2_front_ys, nsga2_front_zs, 
+                                  label="Front NSGA-II Simple",
+                                  s=80, marker='D', 
+                                  color='cyan', edgecolor='black', linewidth=1.5, alpha=0.9)
+            
+            cursor_nsga2 = mplcursors.cursor(sc_nsga2, hover=True)
+            cursor_nsga2.connect("add", make_annotation(nsga2_front_tooltips))
+            all_scatters.append(sc_nsga2)
+            
+            # Ligne pour mieux visualiser la continuité du Front
+            sorted_points = sorted(zip(nsga2_front_xs, nsga2_front_ys, nsga2_front_zs), key=lambda t: t[0])
+            lx, ly, lz = zip(*sorted_points)
+            ax.plot(lx, ly, lz, linestyle='--', linewidth=1.5, color='cyan', alpha=0.7)
+
+
+        # TRACÉ DES POINTS UNIQUES (Solutions Adversaires)
+        if single_points_xs:
+            greedy_tooltips = []
+            for name, sol in zip(single_points_names, [greedy_points[n] for n in single_points_names]):
+                 tooltip = (f"ALGO: {name}\n"
+                           f"Makespan: {sol.makespan:.2f}\n"
+                           f"Cost: {sol.cost:.2f}\n"
+                           f"Energy: {sol.energy:.2f}")
+                 greedy_tooltips.append(tooltip)
+            
+            sc_g = ax.scatter(single_points_xs, single_points_ys, single_points_zs, 
+                              label="Solutions Adversaires (Mono/Greedy)",
+                              s=150, marker='s', # Utilisation d'un carré pour distinguer
+                              color='magenta', edgecolor='black', linewidth=1.5, alpha=1.0)
+            
+            cursor_g = mplcursors.cursor(sc_g, hover=True)
+            cursor_g.connect("add", make_annotation(greedy_tooltips))
+            
+            all_scatters.append(sc_g)
+
     ax.set_xlabel("Makespan", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_ylabel("Cost", fontsize=13, labelpad=15, fontweight='bold')
     ax.set_zlabel("Energy", fontsize=13, labelpad=15, fontweight='bold')
@@ -165,6 +209,43 @@ def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
     ax.grid(True, linestyle="--", alpha=0.5)
     fig.tight_layout()
     return fig, ax 
+
+# Fichier: analyses/visualization.py
+
+# ... (après plot_hv_convergence)
+
+def plot_hv_comparison(hv_gwo_nsga2, hv_nsga2_simple, title="Comparaison de la Convergence de l'Hypervolume"):
+    """
+    Trace et compare les historiques d'Hypervolume de GWO-NSGA-II et NSGA-II Simple.
+    """
+    if not hv_gwo_nsga2 or not hv_nsga2_simple:
+        print("Historique HV incomplet pour la comparaison, rien à tracer.")
+        return None
+    
+    # S'assurer que les listes ont la même longueur pour le tracé (en coupant au plus court)
+    min_len = min(len(hv_gwo_nsga2), len(hv_nsga2_simple))
+    hv_gwo_nsga2 = hv_gwo_nsga2[:min_len]
+    hv_nsga2_simple = hv_nsga2_simple[:min_len]
+    
+    fig = plt.figure(figsize=(9, 6)) 
+    ax = fig.add_subplot(111)
+    
+    ax.plot(range(min_len), hv_gwo_nsga2, marker="o", linestyle="-", 
+            label="GWO-NSGA-II", color="red")
+    ax.plot(range(min_len), hv_nsga2_simple, marker="x", linestyle="--", 
+            label="NSGA-II Simple", color="blue")
+            
+    ax.set_xlabel("Itération", fontsize=12)
+    ax.set_ylabel("Hypervolume (HV)", fontsize=12)
+    ax.set_title(title, fontsize=14)
+    ax.legend(fontsize=11)
+    ax.grid(True, linestyle="--", alpha=0.5)
+    
+    # 💡 AJOUT DU DIAGRAMME DE CONVERGENCE
+    # 
+    
+    fig.tight_layout()
+    return fig
 
 def plot_pareto_2d(objs, x_idx=0, y_idx=1, x_label="Makespan", y_label="Cost"):
     """
@@ -333,13 +414,25 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
     
     archive_fronts = generate_fronts(archive_unique)
     figures = []
-    if reference_solutions:
-        greedy_points = {k: v for k, v in reference_solutions.items() if k.startswith('Greedy')}
-        gwo_mono_points = {k: v for k, v in reference_solutions.items() if k.startswith('GWO-Mono')}
-    else:
-        greedy_points = {}
-        gwo_mono_points = {}
+    greedy_points = {}
+    gwo_mono_points = {}
+    nsga2_front_ref = {}
+    nsga2_hv_history = None
 
+    if reference_solutions:
+        for k, v in reference_solutions.items():
+            if k == 'NSGA2-Simple-HV-History': # 💡 Traiter l'historique HV d'abord
+                nsga2_hv_history = v
+            elif k.startswith('Greedy'):
+                greedy_points[k] = v
+            elif k.startswith('GWO-Mono'):
+                gwo_mono_points[k] = v
+            # Si ce n'est ni HV, ni Greedy, ni GWO-Mono, on assume que c'est le front NSGA2.
+            # La clé est 'NSGA2-Simple-Front' et commence par 'NSGA2-Simple'.
+            elif k.startswith('NSGA2-Simple'): 
+                nsga2_front_ref[k] = v
+            
+    combined_single_points = {**greedy_points, **gwo_mono_points}
     # 1. GRAPH 3D - GWO-NSGA-II vs GREEDY
     fig_3d_greedy = plot_fronts_3d(archive_unique, archive_fronts, 
                    title="Fronts de Pareto - GWO-NSGA-II vs Greedy",
@@ -353,11 +446,20 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
                        greedy_points=gwo_mono_points) # Réutiliser greedy_points car la structure est la même
         if fig_3d_mono: figures.append(fig_3d_mono)
 
-
+    if nsga2_front_ref:
+        # On passe le front NSGA-II comme seule référence dans ce plot
+        fig_3d_nsga2_simple = plot_fronts_3d(archive_unique, archive_fronts, 
+                       title="Fronts de Pareto - GWO-NSGA-II vs NSGA-II Simple Front",
+                       greedy_points=nsga2_front_ref) 
+        if fig_3d_nsga2_simple: figures.append(fig_3d_nsga2_simple)
     # 3. Plot HV
     if hv_history:
         fig_hv, _ = plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
         if fig_hv: figures.append(fig_hv)
+
+    if hv_history and nsga2_hv_history:
+        fig_hv_comp = plot_hv_comparison(hv_history, nsga2_hv_history)
+        if fig_hv_comp: figures.append(fig_hv_comp)
 
     # 4. Plot 2D
     if archive_unique:
@@ -374,3 +476,4 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
     print(f"✓ {len(figures)} figures générées et affichées simultanément.")
     
     plt.show()
+
