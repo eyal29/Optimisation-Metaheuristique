@@ -104,7 +104,14 @@ def average_latency(solution, donnees):
                         for i in range(donnees.n))
     return total_latency / donnees.n
 
-
+def average_cost_per_video(solution, donnees):
+    """
+    Coût moyen par vidéo: cost / n.
+    Plus le coût est faible, meilleure est la solution.
+    """
+    if donnees.n == 0:
+        return 0.0
+    return solution.cost / donnees.n
 
 # MÉTRIQUES DE DIVERSITÉ ET QUALITÉ PARETO
 def diversity_spread(objs):
@@ -161,7 +168,8 @@ def compute_metrics_all_solutions(archive_solutions, donnees):
         'LBI': [],
         'FUR': [],
         'EE': [],
-        'AvgLatency': []
+        'AvgLatency': [],
+        'AvgCost': []
     }
     
     if archive_solutions:
@@ -171,14 +179,15 @@ def compute_metrics_all_solutions(archive_solutions, donnees):
             fur = fog_utilization_ratio(solution, donnees)
             ee = energy_efficiency(solution)
             avg_lat = average_latency(solution, donnees)
-            
+            avg_cost = average_cost_per_video(solution, donnees)
             print(f"[Metrics SOLUTION] LBI={lbi:.4f}, FUR={fur:.4f}, "
-                  f"EE={ee:.4f}, AvgLatency={avg_lat:.4f}")
+                  f"EE={ee:.4f}, AvgLatency={avg_lat:.4f}, AvgCost={avg_cost:.4f}")
             
             metrics_data['LBI'].append(lbi)
             metrics_data['FUR'].append(fur)
             metrics_data['EE'].append(ee)
             metrics_data['AvgLatency'].append(avg_lat)
+            metrics_data['AvgCost'].append(avg_cost)
     else:
         print("Aucune solution dans l'archive")
     
@@ -187,18 +196,27 @@ def compute_metrics_all_solutions(archive_solutions, donnees):
 
 def compute_composite_scores(metrics_data, n_solutions):
     scores = []
-    
+    has_avg_cost = 'AvgCost' in metrics_data and len(metrics_data['AvgCost']) > 0
+    weights = 0.2 if has_avg_cost else 0.25
     for i in range(n_solutions):
         lbi_norm = 1 - (metrics_data['LBI'][i] - min(metrics_data['LBI'])) / \
                    (max(metrics_data['LBI']) - min(metrics_data['LBI']) + 1e-4)
         fur_norm = (metrics_data['FUR'][i] - min(metrics_data['FUR'])) / \
                    (max(metrics_data['FUR']) - min(metrics_data['FUR']) + 1e-4)
         ee_norm = (metrics_data['EE'][i] - min(metrics_data['EE'])) / \
-                  (max(metrics_data['EE']) - min(metrics_data['EE']) + 1e-4)
-        lat_norm = 1 - (metrics_data['AvgLatency'][i] - min(metrics_data['AvgLatency'])) / \
-                   (max(metrics_data['AvgLatency']) - min(metrics_data['AvgLatency']) + 1e-4)
+                  (max(metrics_data['EE']) - min(metrics_data['EE']) + 1e-4)    
+        lat_max, lat_min = max(metrics_data['AvgLatency']), min(metrics_data['AvgLatency'])
+        lat_norm = 1 - (metrics_data['AvgLatency'][i] - lat_min) / (lat_max - lat_min + 1e-4)
         
-        score = 0.25 * (lbi_norm + fur_norm + ee_norm + lat_norm)
+        score_sum = lbi_norm + fur_norm + ee_norm + lat_norm
+        
+        if has_avg_cost:
+            # AvgCost (min)
+            avgcost_max, avgcost_min = max(metrics_data['AvgCost']), min(metrics_data['AvgCost'])
+            avgcost_norm = 1 - (metrics_data['AvgCost'][i] - avgcost_min) / (avgcost_max - avgcost_min + 1e-4)
+            score_sum += avgcost_norm
+            
+        score = weights * score_sum
         scores.append(score)
     
     return scores
