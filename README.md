@@ -29,21 +29,22 @@ Une fois les dépendances installées, vous pouvez lancer le projet via le fichi
 
 ## Structure du Projet
     
-    ├── algo.py                  # Logique de l'algorithme hybride GWO-NSGA-II
-    ├── config.yaml              # Fichier de configuration pour l'algorithme
-    ├── initialization.py        # Initialisation des données et objets
-    ├── utils_to_algo.py         # Modèles et utilitaires
+    ├── algo_hybride/
+    │   ├── algo.py              # Logique de l'algorithme hybride GWO-NSGA-II
+    │   ├── initialization.py    # Initialisation des données et objets
+    │   ├── utils_to_algo.py     # Modèles et utilitaires
     ├── analyses/
     │   ├── metrics.py           # Calcul des métriques de performance
     │   ├── visualization.py     # Visualisation des résultats
     │   └── experiments.py       # Exécution des expérimentations
-    ├── heuristiques/            # Algorithmes de référence 
+    ├── heuristiques/            # Algorithmes de référence pour les comparaisons
     |   ├── greedy.py          
     │   ├── gwo_simple.py    
     │   └── nsga2.py    
     ├── datasets/                #Datasets de VM et Vidéos
     |   ├── machines_virtuelles.py          
-    │   ├── videos.py                
+    │   ├── videos.py  
+    ├── config.yaml              # Fichier de configuration pour l'algorithme      
     └── main.py                  # Point d'entrée du programme
     
 
