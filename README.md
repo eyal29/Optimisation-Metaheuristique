@@ -26,7 +26,6 @@ Installez les bibliothèques nécessaires via le fichier requirements.txt :
 Une fois les dépendances installées, vous pouvez lancer le projet via le fichier principal main.py :
     ```bash
     python main.py
-
 ## Structure du Projet
     
     ├── algo_hybride/
@@ -46,7 +45,15 @@ Une fois les dépendances installées, vous pouvez lancer le projet via le fichi
     │   ├── videos.py  
     ├── config.yaml              # Fichier de configuration pour l'algorithme      
     └── main.py                  # Point d'entrée du programme
-    
+
+## Branche pour la comparaison avec NSGA-II
+
+Si vous souhaitez tester le projet avec des configurations différentes pour la comparaison avec NSGA-II, une branche distincte est disponible. Cette branche contient des configurations spécifiques pour effectuer cette comparaison.
+
+Pour accéder à cette branche : 
+
+    git checkout add_comparaison-nsga2
+
 
 ## Auteurs
 - Projet réalisé par Eya LACHHEB, Lina ERRADI, Sara FLEGINES, Lyliane HADIOUCHE
