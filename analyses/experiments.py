@@ -3,10 +3,10 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-from algo import ParetoArchive, compute_a, generate_valid_solution, select_leaders
-from initialization import load_config, load_data
+from algo_hybride.algo import ParetoArchive, compute_a, generate_valid_solution, select_leaders
+from algo_hybride.initialization import load_config, load_data
 from metrics import diversity_spread, extract_objectives, init_hv_tracking, pareto_size, spacing_metric, update_hv_tracking
-from utils_to_algo import Donnees, gwo_update_population 
+from algo_hybride.utils_to_algo import Donnees, gwo_update_population 
 
 
 def run_gwo_single(

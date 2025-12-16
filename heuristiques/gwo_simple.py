@@ -1,8 +1,8 @@
 # Fichier: gwo_mono_solver.py
 
 import copy
-from algo import compute_a, generate_valid_solution
-from utils_to_algo import gwo_update_population
+from algo_hybride.algo import compute_a, generate_valid_solution
+from algo_hybride.utils_to_algo import gwo_update_population
 
 
 def select_mono_leaders(population, objective_mode):

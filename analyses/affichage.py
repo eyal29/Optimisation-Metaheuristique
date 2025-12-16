@@ -1,9 +1,9 @@
 import time
-from algo import generate_fronts
+from algo_hybride.algo import generate_fronts
 from heuristiques.greedy import generate_greedy_solution
 from heuristiques.gwo_simple import solve_gwo_mono
 from analyses.metrics import average_cost_per_video, average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
-from utils_to_algo import sol_signature
+from algo_hybride.utils_to_algo import sol_signature
 
 
 def print_solution_info(solution, idx,):
@@ -123,7 +123,7 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
     sol_greedy_e = generate_greedy_solution(donnees, greedy_mode='energy')
 
     print("\n[GWO Mono] Génération des 3 solutions mono-objectives...")
-    from initialization import load_config # Temporaire, pour le test
+    from algo_hybride.initialization import load_config # Temporaire, pour le test
     config = load_config("config.yaml")
     sol_gwo_m = solve_gwo_mono(donnees, config, objective_mode='makespan')
     sol_gwo_c = solve_gwo_mono(donnees, config, objective_mode='cost')

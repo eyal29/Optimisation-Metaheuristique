@@ -2,8 +2,8 @@ from typing import Tuple
 import pandas as pd
 import yaml
 
-from algo import ParetoArchive, generate_valid_solution
-from utils_to_algo import Donnees
+from algo_hybride.algo import ParetoArchive, generate_valid_solution
+from algo_hybride.utils_to_algo import Donnees
 
 def load_config(path: str = "config.yaml") -> dict:
     with open(path, "r", encoding="utf-8") as f:

@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-from utils_to_algo import assign_crowding_distance, crowding_distance, Solution, dominates, sol_signature
+from algo_hybride.utils_to_algo import assign_crowding_distance, crowding_distance, Solution, dominates, sol_signature
 
 
 def generate_valid_solution(donnees):

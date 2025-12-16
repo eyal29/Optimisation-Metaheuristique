@@ -1,5 +1,5 @@
 import numpy as np
-from utils_to_algo import Solution 
+from algo_hybride.utils_to_algo import Solution 
 
 def generate_greedy_solution(donnees, greedy_mode='makespan'):
     """
