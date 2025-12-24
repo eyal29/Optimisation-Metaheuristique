@@ -277,6 +277,8 @@ def _create_metric_subplot(ax, solution_indices, values, metric_name, config):
     """
     Fonction auxiliaire pour créer un sous-graphique de métrique.
     """
+    values = np.array(values) 
+    
     ax.bar(solution_indices, values, color=config['color'], 
            alpha=0.7, edgecolor=config['edgecolor'])
     ax.set_xlabel('Solution', fontweight='bold')
@@ -287,6 +289,21 @@ def _create_metric_subplot(ax, solution_indices, values, metric_name, config):
     mean_val = np.mean(values)
     ax.axhline(y=mean_val, color='red', linestyle='--', linewidth=2, 
                label=f'Moyenne: {mean_val:.3f}')
+    
+    # 2. CORRECTION DE LA VÉRIFICATION (.size > 0) et de np.max/np.min
+    if values.size > 0: 
+        y_max_data = max(np.max(values), mean_val)
+        y_min_data = min(np.min(values), 0)
+    else:
+        y_max_data = 0
+        y_min_data = 0
+        
+    y_range = y_max_data - y_min_data if y_max_data != y_min_data else 1
+    
+    # Ajout d'un padding de 20% à la limite supérieure pour éviter le chevauchement
+    padding_factor = 0.20 
+    ax.set_ylim(y_min_data, y_max_data + y_range * padding_factor) 
+
     
     best_idx = config['best_func'](values)
     best_val = values[best_idx]
@@ -305,13 +322,71 @@ def _create_metric_subplot(ax, solution_indices, values, metric_name, config):
     ax.legend(loc='upper left')
 
 
-def plot_archive_metrics_visualization(metrics_data, archive_solutions):
+
+
+
+def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None, reference_solutions=None, metrics_data=None):
+    print("\n" + "="*70)
+    print("AFFICHAGE DE L'ARCHIVE GLOBALE (TOUS LES FRONTS)")
+    print("="*70)
+    
+    archive_fronts = generate_fronts(archive_unique)
+    figures = []
+    if reference_solutions:
+        greedy_points = {k: v for k, v in reference_solutions.items() if k.startswith('Greedy')}
+        gwo_mono_points = {k: v for k, v in reference_solutions.items() if k.startswith('GWO-Mono')}
+    else:
+        greedy_points = {}
+        gwo_mono_points = {}
+
+    # 1. GRAPH 3D - GWO-NSGA-II vs GREEDY
+    fig_3d_greedy = plot_fronts_3d(archive_unique, archive_fronts, 
+                   title="Fronts de Pareto - GWO-NSGA-II vs Greedy",
+                   greedy_points=greedy_points)
+    if fig_3d_greedy: figures.append(fig_3d_greedy)
+    
+    # 2. GRAPH 3D - GWO-NSGA-II vs GWO MONO
+    if gwo_mono_points:
+        fig_3d_mono = plot_fronts_3d(archive_unique, archive_fronts, 
+                       title="Fronts de Pareto - GWO-NSGA-II vs GWO Mono",
+                       greedy_points=gwo_mono_points) # Réutiliser greedy_points car la structure est la même
+        if fig_3d_mono: figures.append(fig_3d_mono)
+
+
+    # 3. Plot HV
+    if hv_history:
+        fig_hv, _ = plot_hv_convergence(hv_history, title="Convergence de l'hypervolume (GWO Fog-Cloud)")
+        if fig_hv: figures.append(fig_hv)
+
+    # 4. Plot 2D
+    if archive_unique:
+        objs_arch_final = extract_objectives(archive_unique)
+        fig_2d, _ = plot_pareto_2d(objs_arch_final, x_idx=0, y_idx=1, 
+                      x_label="Makespan", y_label="Cost")
+        if fig_2d: figures.append(fig_2d)
+        
+    # 5. Plot Métriques d'Archive
+    if metrics_data:
+        n_solutions = len(archive_unique)
+        fig_metrics_bars = plot_archive_metric_bars(metrics_data, n_solutions, 
+                                title=f"Visualisation des Métriques (Barres) - {n_solutions} solutions")
+        if fig_metrics_bars: figures.append(fig_metrics_bars)
+        
+        fig_metrics_summary = plot_archive_text_summary(metrics_data, archive_unique, 
+                            title=f"Analyse des Métriques - Résumé ({n_solutions} solutions)")
+        if fig_metrics_summary: figures.append(fig_metrics_summary)
+        
+    print(f"✓ {len(figures)} figures générées et affichées simultanément.")
+    
+    plt.show()
+
+def plot_archive_metric_bars(metrics_data, n_solutions, title="Visualisation des Métriques (Barres)"):
     """
-    Affiche les métriques de toutes les solutions de l'archive sous forme de graphiques.
+    Affiche les métriques de toutes les solutions de l'archive sous forme de graphiques à barres.
     """
-    if not metrics_data['LBI']:
-        print("Aucune métrique à afficher.")
-        return
+    if not metrics_data.get('LBI'):
+        print("Aucune métrique à afficher pour les barres.")
+        return None
     
     n_solutions = len(metrics_data['LBI'])
     
@@ -324,7 +399,7 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
         
     solution_indices = np.arange(1, n_solutions + 1)
     
-    fig = plt.figure(figsize=(18, 10))
+    fig = plt.figure(figsize=(18, 12)) # Taille ajustée pour 5 barres
     
     metrics_config = {
         'LBI': {
@@ -350,17 +425,40 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
             'title': 'Average Latency', 'ylabel': 'Latence Moyenne',
             'better': 'Plus bas = meilleur', 'best_func': np.argmin,
             'best_label': 'Meilleure performance'
+        },
+        'AvgCost': { # NEW METRIC
+            'color': 'darkgoldenrod', 'edgecolor': 'saddlebrown',
+            'title': 'Average Cost per Video (AvgCost)', 'ylabel': 'Avg Cost',
+            'better': 'Plus bas = meilleur', 'best_func': np.argmin,
+            'best_label': 'Min Coût Moy.'
         }
     }
     
     for idx, (metric_name, config) in enumerate(metrics_config.items(), 1):
-        ax = plt.subplot(2, 3, idx)
-        _create_metric_subplot(ax, solution_indices, metrics_data[metric_name], 
-                              metric_name, config)
+        # Utilise plt.subplot(2, 3, idx) pour une grille 2x3 qui peut contenir 5 plots
+        if metric_name in metrics_data:
+            ax = plt.subplot(2, 3, idx) 
+            _create_metric_subplot(ax, solution_indices, metrics_data[metric_name], 
+                                  metric_name, config)
     
-    # Recommandations (subplot 5)
-    ax5 = plt.subplot(2, 3, 5)
-    ax5.axis('off')
+    plt.suptitle(title, fontsize=16, fontweight='bold', y=0.995)
+    plt.tight_layout()
+    return fig
+
+def plot_archive_text_summary(metrics_data, archive_solutions, title="Analyse des Métriques - Résumé"):
+    """
+    Affiche les recommandations et les statistiques descriptives.
+    """
+    n_solutions = len(archive_solutions)
+    if n_solutions == 0:
+        print("Aucune solution dans l'archive pour le résumé.")
+        return None
+        
+    fig = plt.figure(figsize=(15, 7)) # Nouvelle figure pour les textes
+    
+    # Recommandations (subplot 1)
+    ax1 = plt.subplot(1, 2, 1) # 1x2 grid
+    ax1.axis('off')
     
     scores = compute_composite_scores(metrics_data, n_solutions)
     top3_indices = np.argsort(scores)[-3:][::-1]
@@ -370,31 +468,30 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
     
     for rank, idx in enumerate(top3_indices, 1):
         sol_num = idx + 1
-        # solution = archive_solutions[idx]
         recommendation_text += f"#{rank} - Solution {sol_num} (score: {scores[idx]:.3f})\n"
-        # recommendation_text += f"   Makespan: {solution.makespan:.2f}\n"
-        # recommendation_text += f"   Cost: {solution.cost:.2f}\n"
-        # recommendation_text += f"   Energy: {solution.energy:.2f}\n"
-        recommendation_text += f"   LBI: {metrics_data['LBI'][idx]:.3f} "
+        recommendation_text += f"   LBI: {metrics_data['LBI'][idx]:.3f} \n"
+        recommendation_text += f"   FUR: {metrics_data['FUR'][idx]:.3f} \n"
+        recommendation_text += f"   EE: {metrics_data['EE'][idx]:.1f} \n"
+        recommendation_text += f"   Latency: {metrics_data['AvgLatency'][idx]:.3f} \n"
+        if 'AvgCost' in metrics_data:
+            recommendation_text += f"   AvgCost: {metrics_data['AvgCost'][idx]:.3f} \n" # Affichage AvgCost
         recommendation_text += f"\n"
-        recommendation_text += f"   FUR: {metrics_data['FUR'][idx]:.3f} "
-        recommendation_text += f"\n"
-        recommendation_text += f"   EE: {metrics_data['EE'][idx]:.1f} "
-        recommendation_text += f"\n"
-        recommendation_text += f"   Latency: {metrics_data['AvgLatency'][idx]:.3f} "
-        recommendation_text += f"\n\n"
     
-    ax5.text(0.05, 0.95, recommendation_text, transform=ax5.transAxes, 
+    ax1.text(0.05, 0.95, recommendation_text, transform=ax1.transAxes, 
              fontsize=10, verticalalignment='top', family='monospace',
              bbox=dict(boxstyle='round', facecolor='lightblue', 
                       alpha=0.8, edgecolor='blue', linewidth=2))
     
-    # Statistiques (subplot 6)
-    ax6 = plt.subplot(2, 3, 6)
-    ax6.axis('off')
+    # Statistiques (subplot 2)
+    ax2 = plt.subplot(1, 2, 2)
+    ax2.axis('off')
     stats_text = "STATISTIQUES DESCRIPTIVES\n" + "="*40 + "\n\n"
     
-    for metric_name in ['LBI', 'FUR', 'EE', 'AvgLatency']:
+    metrics_to_show = ['LBI', 'FUR', 'EE', 'AvgLatency']
+    if 'AvgCost' in metrics_data:
+        metrics_to_show.append('AvgCost')
+        
+    for metric_name in metrics_to_show:
         values = np.array(metrics_data[metric_name])
         stats_text += f"{metric_name}:\n"
         stats_text += f"  Moyenne: {np.mean(values):.4f}\n"
@@ -403,14 +500,12 @@ def plot_archive_metrics_visualization(metrics_data, archive_solutions):
         stats_text += f"  Min: {np.min(values):.4f}\n"
         stats_text += f"  Max: {np.max(values):.4f}\n\n"
     
-    ax6.text(0.1, 0.95, stats_text, transform=ax6.transAxes, 
+    ax2.text(0.1, 0.95, stats_text, transform=ax2.transAxes, 
              fontsize=10, verticalalignment='top', family='monospace',
              bbox=dict(boxstyle='round', facecolor='wheat', 
                       alpha=0.8, edgecolor='orange', linewidth=2))
     
-    plt.suptitle(f'Analyse des Métriques - {n_solutions} Solutions de l\'Archive', 
-                 fontsize=16, fontweight='bold', y=0.995)
-    
+    plt.suptitle(title, fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     return fig
 
@@ -654,3 +749,4 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
         if fig_metrics: figures.append(fig_metrics)
     plt.show()
 
+    return fig

@@ -5,6 +5,7 @@ from heuristiques.gwo_simple import solve_gwo_mono
 from heuristiques.nsga2 import solve_nsga2_simple 
 from heuristiques.mogwo import run_mogwo_standard 
 from analyses.metrics import average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
+from analyses.metrics import average_cost_per_video, average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
 from algo_hybride.utils_to_algo import sol_signature
 
 
