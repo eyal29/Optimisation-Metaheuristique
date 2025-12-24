@@ -3,6 +3,7 @@ from algo import generate_fronts
 from heuristiques.greedy import generate_greedy_solution
 from heuristiques.gwo_simple import solve_gwo_mono
 from heuristiques.nsga2 import solve_nsga2_simple 
+from heuristiques.mogwo import run_mogwo_standard 
 from analyses.metrics import average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
 from utils_to_algo import sol_signature
 
@@ -132,6 +133,9 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
 
     print("\n[NSGA-II Simple] Génération de la solution représentative...")
     nsga2_front, nsga2_hv_history = solve_nsga2_simple(donnees, config)    
+
+    print("\n[MOGWO Standard] Exécution pour comparaison...")
+    hv_history_mogwo, archive_mogwo_solutions, _ = run_mogwo_standard(donnees, config, verbose=False)
     
     reference_solutions = {
         'Greedy-Makespan': sol_greedy_m,
@@ -141,8 +145,11 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
         'GWO-Mono-Cost': sol_gwo_c,
         'GWO-Mono-Energy': sol_gwo_e,
         'NSGA2-Simple-Front': nsga2_front,
-        'NSGA2-Simple-HV-History': nsga2_hv_history
+        'NSGA2-Simple-HV-History': nsga2_hv_history,
+        'MOGWO-Standard-Archive': archive_mogwo_solutions,
+        'MOGWO-Standard-HV-History': hv_history_mogwo
     }
+    
     print("\n--- SOLUTIONS DE RÉFÉRENCE ---")
     for name, sol_or_list in reference_solutions.items():
         if isinstance(sol_or_list, list):
