@@ -210,10 +210,6 @@ def plot_hv_convergence(hv_history, title="Convergence de l'hypervolume"):
     fig.tight_layout()
     return fig, ax 
 
-# Fichier: analyses/visualization.py
-
-# ... (après plot_hv_convergence)
-
 def plot_hv_comparison(hv1, hv2, label1="GWO-NSGA-II", label2="NSGA-II Simple", title="Comparaison de la Convergence de l'Hypervolume"):
     """
     Trace et compare les historiques d'Hypervolume de deux algorithmes.
@@ -240,9 +236,6 @@ def plot_hv_comparison(hv1, hv2, label1="GWO-NSGA-II", label2="NSGA-II Simple", 
     ax.set_title(title, fontsize=14)
     ax.legend(fontsize=11)
     ax.grid(True, linestyle="--", alpha=0.5)
-    
-    # 💡 AJOUT DU DIAGRAMME DE CONVERGENCE
-    # 
     
     fig.tight_layout()
     return fig
