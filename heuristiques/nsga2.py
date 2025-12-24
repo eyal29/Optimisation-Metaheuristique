@@ -1,8 +1,8 @@
 import copy
 import numpy as np
-from algo import generate_fronts, generate_valid_solution
-from utils_to_algo import assign_crowding_distance, Solution
-from utils_to_algo import repair_assignment 
+from algo_hybride.algo import generate_fronts, generate_valid_solution
+from algo_hybride.utils_to_algo import assign_crowding_distance, Solution
+from algo_hybride.utils_to_algo import repair_assignment 
 # 💡 IMPORTS POUR L'HYPERVOLUME
 from analyses.metrics import init_hv_tracking, update_hv_tracking, extract_objectives
 

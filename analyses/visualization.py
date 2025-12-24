@@ -2,9 +2,9 @@ from matplotlib import pyplot as plt
 import mplcursors
 import numpy as np
 
-from algo import generate_fronts
+from algo_hybride.algo import generate_fronts
 from analyses.metrics import compute_composite_scores, extract_objectives
-from utils_to_algo import sol_signature
+from algo_hybride.utils_to_algo import sol_signature
 
 
 def _add_jitter_if_needed(xs, ys, zs):

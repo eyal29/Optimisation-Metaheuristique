@@ -7,8 +7,8 @@ Différences avec l'algorithme hybride :
 """
 
 import numpy as np
-from utils_to_algo import gwo_update_population
-from algo import compute_a, generate_valid_solution, ParetoArchive
+from algo_hybride.utils_to_algo import gwo_update_population
+from algo_hybride.algo import compute_a, generate_valid_solution, ParetoArchive
 
 
 def select_leaders_random(archive):

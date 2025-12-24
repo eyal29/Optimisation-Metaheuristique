@@ -4,9 +4,9 @@ import sys
 import time
 
 from analyses.affichage import compute_and_display_metrics, display_archive, display_fronts, display_leaders, finalize_and_report
-from algo import check_early_stopping, compute_a, evaluate_solutions, generate_fronts, select_leaders
-from initialization import  initialize_full_algorithm
-from utils_to_algo import gwo_update_population
+from algo_hybride.algo import check_early_stopping, compute_a, evaluate_solutions, generate_fronts, select_leaders
+from algo_hybride.initialization import  initialize_full_algorithm
+from algo_hybride.utils_to_algo import gwo_update_population
 from analyses.visualization import plot_final_results
 
 
