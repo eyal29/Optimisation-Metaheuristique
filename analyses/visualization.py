@@ -3,9 +3,7 @@ import mplcursors
 import numpy as np
 
 from algo_hybride.algo import generate_fronts
-from algo_hybride.algo import generate_fronts
 from analyses.metrics import compute_composite_scores, extract_objectives
-from algo_hybride.utils_to_algo import sol_signature
 from algo_hybride.utils_to_algo import sol_signature
 
 
