@@ -65,8 +65,9 @@ def main():
         )
 
     # 3. FINALISATION ET RAPPORT
-    finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time, plot_final_results)
-
+    finalize_and_report(archive, donnees, valid_solutions, hv_history, plot_final_results)
+    end_time = time.time()
+    print(f"\nTemps d'exécution total : {end_time - start_time:.2f} secondes")
 
 if __name__ == "__main__":
     main()

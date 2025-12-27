@@ -412,10 +412,20 @@ def plot_final_results(archive_unique, hv_history, donnees, valid_solutions=None
 def plot_archive_metric_bars(metrics_data, n_solutions, title="Visualisation des Métriques (Barres)"):
     """
     Affiche les métriques de toutes les solutions de l'archive sous forme de graphiques à barres.
+    Triées par LBI (du pire au meilleur).
     """
     if not metrics_data.get('LBI'):
         print("Aucune métrique à afficher pour les barres.")
         return None
+    
+    # Trier par LBI décroissant (pire → meilleur, car LBI élevé = moins bon)
+    lbi_values = np.array(metrics_data['LBI'])
+    sorted_indices = np.argsort(lbi_values)[::-1]
+    
+    # Réorganiser toutes les métriques
+    metrics_data_sorted = {}
+    for key in metrics_data.keys():
+        metrics_data_sorted[key] = [metrics_data[key][i] for i in sorted_indices]
     
     solution_indices = np.arange(1, n_solutions + 1)
     
@@ -456,12 +466,12 @@ def plot_archive_metric_bars(metrics_data, n_solutions, title="Visualisation des
     
     for idx, (metric_name, config) in enumerate(metrics_config.items(), 1):
         # Utilise plt.subplot(2, 3, idx) pour une grille 2x3 qui peut contenir 5 plots
-        if metric_name in metrics_data:
+        if metric_name in metrics_data_sorted:
             ax = plt.subplot(2, 3, idx) 
-            _create_metric_subplot(ax, solution_indices, metrics_data[metric_name], 
+            _create_metric_subplot(ax, solution_indices, metrics_data_sorted[metric_name], 
                                   metric_name, config)
     
-    plt.suptitle(title, fontsize=16, fontweight='bold', y=0.995)
+    plt.suptitle(title + "\n(Triées par LBI: Pire → Meilleur)", fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     return fig
 

@@ -1,4 +1,3 @@
-import time
 from algo_hybride.algo import generate_fronts
 from heuristiques.greedy import generate_greedy_solution
 from heuristiques.gwo_simple import solve_gwo_mono
@@ -110,7 +109,7 @@ def compute_and_display_archive_solutions_metrics(archive_solutions, donnees):
         print("Aucune solution dans l'archive")
 
 
-def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time, plot_final_results):
+def finalize_and_report(archive, donnees, valid_solutions, hv_history, plot_final_results):
     # Nettoyage de l'archive
     archive_unique = archive.get_solutions()
     
@@ -163,9 +162,5 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
         print_solution_info(solution, idx)
     display_archive(archive_unique, show_summary=True, valid_solutions=valid_solutions, donnees=donnees)
     metrics_data = compute_metrics_all_solutions(archive_unique, donnees)
-
-    end_time = time.time()
-    exec_time = end_time - start_time
-    print(f"\nTemps d'exécution total : {exec_time:.2f} secondes")
 
     plot_final_results(archive_unique, hv_history, donnees, valid_solutions, reference_solutions, metrics_data)
