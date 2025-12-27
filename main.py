@@ -63,11 +63,10 @@ def main():
         valid_solutions = gwo_update_population(
             evaluated_solutions, alpha, beta, delta, donnees, a
         )
-
-    # 3. FINALISATION ET RAPPORT
-    finalize_and_report(archive, donnees, valid_solutions, hv_history, plot_final_results)
     end_time = time.time()
     print(f"\nTemps d'exécution total : {end_time - start_time:.2f} secondes")
+    # 3. FINALISATION ET RAPPORT
+    finalize_and_report(archive, donnees, valid_solutions, hv_history, plot_final_results)
 
 if __name__ == "__main__":
     main()

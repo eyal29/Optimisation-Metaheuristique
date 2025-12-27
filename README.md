@@ -46,13 +46,8 @@ Une fois les dépendances installées, vous pouvez lancer le projet via le fichi
     ├── config.yaml              # Fichier de configuration pour l'algorithme      
     └── main.py                  # Point d'entrée du programme
 
-## Branche pour la comparaison avec NSGA-II
-
-Si vous souhaitez tester le projet avec des configurations différentes pour la comparaison avec NSGA-II, une branche distincte est disponible. Cette branche contient des configurations spécifiques pour effectuer cette comparaison.
-
-Pour accéder à cette branche : 
-
-    git checkout add_comparaison-nsga2
+## Temps d'execution
+L'exécution de l'algorithme hybride prend environ 1 minute. Il faut ensuite attendre environ 5 minutes pour la comparaison avec les autres algorithmes et l'affichage des résultats.
 
 
 ## Auteurs
