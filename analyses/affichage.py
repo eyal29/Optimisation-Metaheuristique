@@ -1,7 +1,8 @@
-import time
 from algo_hybride.algo import generate_fronts
 from heuristiques.greedy import generate_greedy_solution
 from heuristiques.gwo_simple import solve_gwo_mono
+from heuristiques.nsga2 import solve_nsga2_simple 
+from heuristiques.mogwo import run_mogwo_standard 
 from analyses.metrics import average_cost_per_video, average_latency, compute_metrics_all_solutions, diversity_spread, energy_efficiency, extract_objectives, fog_utilization_ratio, init_hv_tracking, load_balancing_index, pareto_size, spacing_metric, update_hv_tracking
 from algo_hybride.utils_to_algo import sol_signature
 
@@ -108,7 +109,7 @@ def compute_and_display_archive_solutions_metrics(archive_solutions, donnees):
         print("Aucune solution dans l'archive")
 
 
-def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_time, plot_final_results):
+def finalize_and_report(archive, donnees, valid_solutions, hv_history, plot_final_results):
     # Nettoyage de l'archive
     archive_unique = archive.get_solutions()
     
@@ -129,17 +130,31 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
     sol_gwo_c = solve_gwo_mono(donnees, config, objective_mode='cost')
     sol_gwo_e = solve_gwo_mono(donnees, config, objective_mode='energy')
 
+    print("\n[NSGA-II Simple] Génération de la solution représentative...")
+    nsga2_front, nsga2_hv_history = solve_nsga2_simple(donnees, config)    
+
+    print("\n[MOGWO Standard] Exécution pour comparaison...")
+    hv_history_mogwo, archive_mogwo_solutions, _ = run_mogwo_standard(donnees, config, verbose=False)
+    
     reference_solutions = {
         'Greedy-Makespan': sol_greedy_m,
         'Greedy-Cost': sol_greedy_c,
         'Greedy-Energy': sol_greedy_e,
         'GWO-Mono-Makespan': sol_gwo_m,
         'GWO-Mono-Cost': sol_gwo_c,
-        'GWO-Mono-Energy': sol_gwo_e
+        'GWO-Mono-Energy': sol_gwo_e,
+        'NSGA2-Simple-Front': nsga2_front,
+        'NSGA2-Simple-HV-History': nsga2_hv_history,
+        'MOGWO-Standard-Archive': archive_mogwo_solutions,
+        'MOGWO-Standard-HV-History': hv_history_mogwo
     }
+    
     print("\n--- SOLUTIONS DE RÉFÉRENCE ---")
-    for name, sol in reference_solutions.items():
-        print(f"[{name}] Makespan={sol.makespan:.4f}, Cost={sol.cost:.4f}, Energy={sol.energy:.4f}")
+    for name, sol_or_list in reference_solutions.items():
+        if isinstance(sol_or_list, list):
+            print(f"[{name}] {len(sol_or_list)} solutions dans le Front.")
+        else:
+            print(f"[{name}] Makespan={sol_or_list.makespan:.4f}, Cost={sol_or_list.cost:.4f}, Energy={sol_or_list.energy:.4f}")
 
     # RAPPORT FINAL (AFFICHAGE ET VISUALISATION)
     print("\n\n===== DÉTAILS DES SOLUTIONS FINALES DE L'ARCHIVE =====")
@@ -147,9 +162,5 @@ def finalize_and_report(archive, donnees, valid_solutions, hv_history, start_tim
         print_solution_info(solution, idx)
     display_archive(archive_unique, show_summary=True, valid_solutions=valid_solutions, donnees=donnees)
     metrics_data = compute_metrics_all_solutions(archive_unique, donnees)
-
-    end_time = time.time()
-    exec_time = end_time - start_time
-    print(f"\nTemps d'exécution total : {exec_time:.2f} secondes")
 
     plot_final_results(archive_unique, hv_history, donnees, valid_solutions, reference_solutions, metrics_data)
